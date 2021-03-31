@@ -27,8 +27,9 @@ def parse_args() -> Namespace:
 
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--epochs", type=int, default=1)
-    parser.add_argument("--batch_size", type=int, default=4)
-    parser.add_argument("--verbose_every", type=int, default=200, help="print loss and metrics every n batches.")
+    parser.add_argument("--batch_size", type=int, default=256)
+    #parser.add_argument("--clip_grad_norm", type=float, default=1)
+    parser.add_argument("--verbose_every", type=int, default=20, help="print loss and metrics every n batches.")
     parser.add_argument("--save_model_path", default="./state_dict", help="Dont add .pt, it will be added after epoch number")
     #parser.add_argument("--save_model_every", type=int, default=1000, help="save model weights and optimizer every n batches.")
     args = parser.parse_args()
@@ -62,7 +63,7 @@ def load_model(args: Namespace) -> nn.Module:
 
 def load_model_and_optimizer(args: Namespace) -> tp.Tuple[nn.Module, optim.SGD]:
     model = load_model(args)
-    optimizer = optim.SGD(model.parameters(), lr=0.0005, momentum=0.9, weight_decay=4e-5, nesterov=True)
+    optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9, weight_decay=4e-5, nesterov=True)
     if args.from_pretrained is not None:
         checkpoint = torch.load(args.from_pretrained)
         model.load_state_dict(checkpoint['model_state_dict'])
@@ -90,33 +91,37 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, train_dataloa
     criterion = nn.CrossEntropyLoss()
     losses = []
     accuracy = []
+    print(len(train_dataloader))
     for epoch in range(1, args.epochs + 1):
         model.train()
+        #print("very first model weights", torch.max(torch.abs(model.classification_head.fc.weight)))
         for i, (images, labels) in enumerate(train_dataloader):
-            #start = time.time()
+            start = time.time()
+            optimizer.zero_grad()
             images = images.to(device=args.device)
             labels = labels.to(device=args.device)
             logits = model(images)
             loss = criterion(logits, labels)
             loss.backward()
+            #torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip_grad_norm)
             optimizer.step()
-            optimizer.zero_grad()
-
+            
             losses.append(loss.item())
             accuracy.append((torch.argmax(logits, dim=1) == labels).cpu().numpy().mean())
             #print("One batch took", time.time() - start)
+            #print("model weights", torch.max(torch.abs(model.classification_head.fc.weight)))
+            #print("model grads", torch.max(torch.abs(model.classification_head.fc.weight.grad)))
             if i % args.verbose_every == 0 or i + 1 == len(train_dataloader):
                 print("Train loss: ", np.mean(losses))
                 print("Accuracy: ", np.mean(accuracy))
-                print(logits.shape)
-                print(labels)
                 losses = []
                 accuracy = []
         
         model.eval()
         with torch.no_grad():
             for images, labels in val_dataloader:
-                logits = model(images)
+                images = images.to(device=args.device)
+                logits = model(images).cpu()
                 loss = criterion(logits, labels)
                 current_accuracy = (torch.argmax(logits, dim=1) == labels).numpy().mean()
 
@@ -134,7 +139,7 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, train_dataloa
 
 def main(args: Namespace):
     if args.task_mode == "classification":
-      #train_dataloader = get_ImageNet_train(args)
+      train_dataloader = get_ImageNet_train(args)
       test_dataloader = get_ImageNet_val(args)
     else:
       train_dataloader = None # TODO

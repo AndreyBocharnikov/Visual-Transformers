@@ -1,6 +1,7 @@
 from torch.utils.data import DataLoader
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
+from torchvision.datasets import ImageNet
 import os
 
 
@@ -22,11 +23,14 @@ def get_ImageNet_train(args):
 
 
 def get_ImageNet_val(args):
-    #val_dir = os.path.join(args.data, "val")
-    val_dataset = datasets.ImageFolder(args.data, transforms.Compose([
+    val_dir = os.path.join(args.data, "val")
+    val_dataset = datasets.ImageFolder(val_dir, transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(224),
         transforms.ToTensor(),
         normalize,
     ]))
+    print("datset length =", len(val_dataset))
+    print("n_classes:", len(val_dataset.classes))
+    print("n_imgs:", len(val_dataset.imgs))
     return DataLoader(val_dataset, batch_size=args.batch_size, num_workers=2, shuffle=True) # TODO change to false
