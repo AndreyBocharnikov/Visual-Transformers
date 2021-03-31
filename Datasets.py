@@ -4,10 +4,11 @@ import torchvision.transforms as transforms
 import os
 
 
-def get_ImageNet_train(args):
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
+
+def get_ImageNet_train(args):
     train_dir = os.path.join(args.data, 'train')
     train_dataset = datasets.ImageFolder(
         train_dir,
@@ -17,15 +18,15 @@ def get_ImageNet_train(args):
             transforms.ToTensor(),
             normalize,
         ]))
-    return DataLoader(train_dataset, batch_size=args.batch_size, num_workers=4, shuffle=True)
+    return DataLoader(train_dataset, batch_size=args.batch_size, num_workers=2, shuffle=True)
 
 
-def get_ImageNet_val():
-    val_dir = os.path.join(args.data, "val")
-    val_dataset = datasets.ImageFolder(val_dir, transforms.Compose([
+def get_ImageNet_val(args):
+    #val_dir = os.path.join(args.data, "val")
+    val_dataset = datasets.ImageFolder(args.data, transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(224),
         transforms.ToTensor(),
         normalize,
     ]))
-    return DataLoader(val_dataset, batch_size=args.batch_size, num_workers=4, shuffle=False)
+    return DataLoader(val_dataset, batch_size=args.batch_size, num_workers=2, shuffle=True) # TODO change to false

@@ -25,9 +25,10 @@ def parse_args() -> Namespace:
                                                   "if not provided, will be training from scratch. "
                                                   "Used only if learning_mode=Train")
 
+    parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--epochs", type=int, default=1)
     parser.add_argument("--batch_size", type=int, default=4)
-    parser.add_argument("--verbose_every", type=int, default=500, help="print loss and metrics every n batches.")
+    parser.add_argument("--verbose_every", type=int, default=200, help="print loss and metrics every n batches.")
     parser.add_argument("--save_model_path", default="./state_dict", help="Dont add .pt, it will be added after epoch number")
     #parser.add_argument("--save_model_every", type=int, default=1000, help="save model weights and optimizer every n batches.")
     args = parser.parse_args()
@@ -55,7 +56,7 @@ def parse_args() -> Namespace:
 def load_model(args: Namespace) -> nn.Module:
     module = importlib.import_module("models." + args.task_mode)
     model_class = getattr(module, args.model)
-    model = model_class(n_classes=10)
+    model = model_class(n_classes=1000)
     return model
 
 
@@ -71,6 +72,7 @@ def load_model_and_optimizer(args: Namespace) -> tp.Tuple[nn.Module, optim.SGD]:
     else:
         print("Training from scratch.")
         args.current_epoch = 0
+    model.to(device=args.device)
     return model, optimizer
 
 
@@ -79,7 +81,7 @@ def test(model: nn.Module, test_dataloader: DataLoader):
     with torch.no_grad():
         model.eval()
         for image, label in test_dataloader:
-            logits = model(image)  # batch_size should be 1
+            logits = model(image)
             accuracy.append((torch.argmax(logits, dim=1) == label).numpy())
     print("Mean accuracy =", np.mean(accuracy))
 
@@ -91,6 +93,9 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, train_dataloa
     for epoch in range(1, args.epochs + 1):
         model.train()
         for i, (images, labels) in enumerate(train_dataloader):
+            #start = time.time()
+            images = images.to(device=args.device)
+            labels = labels.to(device=args.device)
             logits = model(images)
             loss = criterion(logits, labels)
             loss.backward()
@@ -98,13 +103,16 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, train_dataloa
             optimizer.zero_grad()
 
             losses.append(loss.item())
-            accuracy.append((torch.argmax(logits, dim=1) == labels).numpy().mean())
+            accuracy.append((torch.argmax(logits, dim=1) == labels).cpu().numpy().mean())
+            #print("One batch took", time.time() - start)
             if i % args.verbose_every == 0 or i + 1 == len(train_dataloader):
                 print("Train loss: ", np.mean(losses))
                 print("Accuracy: ", np.mean(accuracy))
+                print(logits.shape)
+                print(labels)
                 losses = []
                 accuracy = []
-
+        
         model.eval()
         with torch.no_grad():
             for images, labels in val_dataloader:
@@ -119,14 +127,14 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, train_dataloa
         print("Val accuracy: ", np.mean(accuracy))
         current_epoch = epoch + args.current_epoch
         torch.save({'epoch': current_epoch,
-                    'model_state_dict': model.state_dict(),
+                    'model_state_dict': model.to("cpu").state_dict(),
                     'optimizer_state_dict': optimizer.state_dict()}, args.save_model_path + str(current_epoch) + ".pt")
-    torch.save(model.state_dict(), "./weights" + args.model + ".pt")
-
+    torch.save(model.to("cpu").state_dict(), "./weights" + args.model + ".pt")
+    
 
 def main(args: Namespace):
     if args.task_mode == "classification":
-      train_dataloader = get_ImageNet_train(args)
+      #train_dataloader = get_ImageNet_train(args)
       test_dataloader = get_ImageNet_val(args)
     else:
       train_dataloader = None # TODO
@@ -137,7 +145,7 @@ def main(args: Namespace):
         test(model, test_dataloader)
     else:
         model, optimizer = load_model_and_optimizer(args)
-        train(args, model, optimizer, train_dataloader, test_dataloader)
+        train(args, model, optimizer, test_dataloader, test_dataloader)
 
 
 if __name__ == "__main__":
