@@ -9,13 +9,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torchvision
-from torch.utils.data import DataLoader
-import torchvision.datasets as datasets
-import torchvision.transforms as transforms
 import torch.optim as optim
+from torch.utils.data import DataLoader
 
-from Datasets import ImageNetDataset
-
+from Datasets import get_ImageNet_train, get_ImageNet_val
 
 def parse_args() -> Namespace:
     parser = ArgumentParser()
@@ -129,8 +126,8 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, train_dataloa
 
 def main(args: Namespace):
     if args.task_mode == "classification":
-      train_dataloader = get_ImageNet_train()
-      test_dataloader = get_ImageNet_val()
+      train_dataloader = get_ImageNet_train(args)
+      test_dataloader = get_ImageNet_val(args)
     else:
       train_dataloader = None # TODO
       test_dataloader = None # TODO
