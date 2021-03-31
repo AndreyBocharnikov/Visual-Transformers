@@ -21,7 +21,7 @@ def parse_args() -> Namespace:
     parser = ArgumentParser()
     parser.add_argument("task_mode", help="Work in classification or semantic segmentation mode.")
     parser.add_argument("learning_mode", help="To train or get results on test set (one must provide weights).")
-    #parser.add_argument("path", help="path to the dataset.")
+    parser.add_argument("data", help="path to the dataset.")
     parser.add_argument("--model", help="Provide ResNet18 or VT_ResNet18 for classification, ... or ... for semantic segmentation.")
     parser.add_argument("--weights", help="In case of learning_mode=Test you need to provide path to trained weights.")
     parser.add_argument("--from_pretrained", help="Path to weights to continue training from saved state dict,"
@@ -77,39 +77,13 @@ def load_model_and_optimizer(args: Namespace) -> tp.Tuple[nn.Module, optim.SGD]:
     return model, optimizer
 
 
-def get_classification_train_dataloaders():
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
-
-    train_dir = os.path.join(args.data, 'train')
-    train_dataset = datasets.ImageFolder(
-        train_dir,
-        transforms.Compose([
-            transforms.RandomResizedCrop(224),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            normalize,
-        ]))
-    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=4, shuffle=True)
-
-    val_dir = os.path.join(args.path, "val")
-    val_dataset = datasets.ImageFolder(val_dir, transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        normalize,
-    ]))
-    val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=4, shuffle=False)
-    return train_dataloader, val_dataloader
-
-
 def test(model: nn.Module, test_dataloader: DataLoader):
     accuracy = []
     with torch.no_grad():
         model.eval()
         for image, label in test_dataloader:
-            logits = model(image)[0]  # batch_size should be 1
-            accuracy.append((torch.argmax(logits) == label).numpy())
+            logits = model(image)  # batch_size should be 1
+            accuracy.append((torch.argmax(logits, dim=1) == label).numpy())
     print("Mean accuracy =", np.mean(accuracy))
 
 
@@ -154,20 +128,12 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, train_dataloa
 
 
 def main(args: Namespace):
-    transform = transforms.Compose(
-        [transforms.ToTensor(),
-         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-
-    trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
-                                            download=True, transform=transform)
-    train_dataloader = torch.utils.data.DataLoader(trainset, batch_size=8,
-                                              shuffle=True, num_workers=2)
-
-    testset = torchvision.datasets.CIFAR10(root='./data', train=False,
-                                           download=True, transform=transform)
-    test_dataloader = torch.utils.data.DataLoader(testset, batch_size=1,
-                                             shuffle=False, num_workers=2)
-    #train_dataloader, val_dataloader = get_classification_train_dataloaders()
+    if args.task_mode == "classification":
+      train_dataloader = get_ImageNet_train()
+      test_dataloader = get_ImageNet_val()
+    else:
+      train_dataloader = None # TODO
+      test_dataloader = None # TODO
     if args.learning_mode == "test":
         model = load_model(args)
         model.load_state_dict(torch.load(args.weights))
