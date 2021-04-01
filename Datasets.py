@@ -22,9 +22,8 @@ def get_ImageNet_train(args):
     print("Training data info:")
     print("Number of classes:", len(train_dataset.classes))
     print("Number of images:", len(train_dataset.imgs))
-    print("Just to check", train_dataset.class_to_idx)
     print()
-    return DataLoader(train_dataset, batch_size=args.batch_size, num_workers=128, shuffle=True)
+    return DataLoader(train_dataset, batch_size=args.batch_size, num_workers=32, shuffle=True)
 
 
 def get_ImageNet_val(args):
@@ -38,6 +37,5 @@ def get_ImageNet_val(args):
     print("Validation data info:")
     print("Number of classes:", len(val_dataset.classes))
     print("Number of images:", len(val_dataset.imgs))
-    print("Just to check", val_dataset.class_to_idx)
     print()
-    return DataLoader(val_dataset, batch_size=args.batch_size, num_workers=128, shuffle=True) # TODO change to false
+    return DataLoader(val_dataset, batch_size=args.batch_size, num_workers=32, shuffle=False)
