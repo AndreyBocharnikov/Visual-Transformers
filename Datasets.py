@@ -19,18 +19,25 @@ def get_ImageNet_train(args):
             transforms.ToTensor(),
             normalize,
         ]))
-    return DataLoader(train_dataset, batch_size=args.batch_size, num_workers=2, shuffle=True)
+    print("Training data info:")
+    print("Number of classes:", len(train_dataset.classes))
+    print("Number of images:", len(train_dataset.imgs))
+    print("Just to check", train_dataset.class_to_idx)
+    print()
+    return DataLoader(train_dataset, batch_size=args.batch_size, num_workers=128, shuffle=True)
 
 
 def get_ImageNet_val(args):
-    val_dir = os.path.join(args.data, "val")
+    val_dir = os.path.join(args.data, "val_use")
     val_dataset = datasets.ImageFolder(val_dir, transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(224),
         transforms.ToTensor(),
         normalize,
     ]))
-    print("datset length =", len(val_dataset))
-    print("n_classes:", len(val_dataset.classes))
-    print("n_imgs:", len(val_dataset.imgs))
-    return DataLoader(val_dataset, batch_size=args.batch_size, num_workers=2, shuffle=True) # TODO change to false
+    print("Validation data info:")
+    print("Number of classes:", len(val_dataset.classes))
+    print("Number of images:", len(val_dataset.imgs))
+    print("Just to check", val_dataset.class_to_idx)
+    print()
+    return DataLoader(val_dataset, batch_size=args.batch_size, num_workers=128, shuffle=True) # TODO change to false

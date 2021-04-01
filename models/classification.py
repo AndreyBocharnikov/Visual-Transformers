@@ -87,7 +87,7 @@ class VT_ResNet18(nn.Module):
         tokenizer2 = RecurrentTokenizer(feature_map_cs=256, visual_tokens_cs=1024)
         self.vt2 = VisualTransformer(tokenizer2, is_last=True)
 
-        self.classification_head = ClassificationHead(in_dim=16, n_classes=n_classes)
+        self.classification_head = ClassificationHead(in_dim=8, n_classes=n_classes)
 
     def forward(self, X):
         feature_map = self.backbone(X)

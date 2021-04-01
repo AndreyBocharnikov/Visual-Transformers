@@ -57,19 +57,20 @@ def parse_args() -> Namespace:
 def load_model(args: Namespace) -> nn.Module:
     module = importlib.import_module("models." + args.task_mode)
     model_class = getattr(module, args.model)
-    model = model_class(n_classes=1000)
+    model = model_class(n_classes=144)
     return model
 
 
 def load_model_and_optimizer(args: Namespace) -> tp.Tuple[nn.Module, optim.SGD]:
     model = load_model(args)
     optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9, weight_decay=4e-5, nesterov=True)
+    #optimizer = optim.Adam(model.parameters(), lr=0.0002, betas=(0.5, 0.999))
     if args.from_pretrained is not None:
-        checkpoint = torch.load(args.from_pretrained)
+        checkpoint = torch.load(args.from_pretrained, map_location='cuda:0')
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         args.current_epoch = checkpoint['epoch']
-        print(f"Training from {args.current_epoch} epoch.")
+        print(f"Training from epoch number {args.current_epoch}.")
     else:
         print("Training from scratch.")
         args.current_epoch = 0
@@ -91,12 +92,13 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, train_dataloa
     criterion = nn.CrossEntropyLoss()
     losses = []
     accuracy = []
-    print(len(train_dataloader))
+    print("Number of batches in training data", len(train_dataloader))
     for epoch in range(1, args.epochs + 1):
         model.train()
         #print("very first model weights", torch.max(torch.abs(model.classification_head.fc.weight)))
+        start = time.time()
         for i, (images, labels) in enumerate(train_dataloader):
-            start = time.time()
+            #start = time.time()
             optimizer.zero_grad()
             images = images.to(device=args.device)
             labels = labels.to(device=args.device)
@@ -109,9 +111,10 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, train_dataloa
             losses.append(loss.item())
             accuracy.append((torch.argmax(logits, dim=1) == labels).cpu().numpy().mean())
             #print("One batch took", time.time() - start)
+            #start = time.time()
             #print("model weights", torch.max(torch.abs(model.classification_head.fc.weight)))
             #print("model grads", torch.max(torch.abs(model.classification_head.fc.weight.grad)))
-            if i % args.verbose_every == 0 or i + 1 == len(train_dataloader):
+            if i + 1 == len(train_dataloader):
                 print("Train loss: ", np.mean(losses))
                 print("Accuracy: ", np.mean(accuracy))
                 losses = []
@@ -130,11 +133,12 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, train_dataloa
 
         print("Val loss: ", np.mean(losses))
         print("Val accuracy: ", np.mean(accuracy))
+        print()
         current_epoch = epoch + args.current_epoch
         torch.save({'epoch': current_epoch,
-                    'model_state_dict': model.to("cpu").state_dict(),
+                    'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict()}, args.save_model_path + str(current_epoch) + ".pt")
-    torch.save(model.to("cpu").state_dict(), "./weights" + args.model + ".pt")
+    torch.save(model.state_dict(), "./weights" + args.model + ".pt")
     
 
 def main(args: Namespace):
