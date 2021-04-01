@@ -82,9 +82,9 @@ class VT_ResNet18(nn.Module):
     def __init__(self, n_classes=1000):
         super().__init__()
         self.backbone = make_resnet14_backbone()
-        tokenizer1 = FilterBasedTokenizer(in_channels=256, n_visual_tokens=16)
+        tokenizer1 = FilterBasedTokenizer(feature_map_cs=256, visual_tokens_cs=1024, n_visual_tokens=8)
         self.vt1 = VisualTransformer(tokenizer1, is_last=False)
-        tokenizer2 = RecurrentTokenizer(in_channels=256)
+        tokenizer2 = RecurrentTokenizer(feature_map_cs=256, visual_tokens_cs=1024)
         self.vt2 = VisualTransformer(tokenizer2, is_last=True)
 
         self.classification_head = ClassificationHead(in_dim=16, n_classes=n_classes)
