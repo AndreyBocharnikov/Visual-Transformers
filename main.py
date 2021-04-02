@@ -32,10 +32,10 @@ def parse_args() -> Namespace:
                                                   "Used only if learning_mode=Train")
 
     parser.add_argument("--device", default="cuda:0")
-    parser.add_argument("--epochs", type=int, default=1)
-    parser.add_argument("--batch_size", type=int, default=256)
+    parser.add_argument("--epochs", type=int, default=10)
+    parser.add_argument("--batch_size", type=int, default=32)
     #parser.add_argument("--clip_grad_norm", type=float, default=1)
-    parser.add_argument("--verbose_every", type=int, default=20, help="print loss and metrics every n batches.")
+    parser.add_argument("--verbose_every", type=int, default=1500, help="print loss and metrics every n batches.")
     parser.add_argument("--save_model_path", default="./state_dict", help="Dont add .pt, it will be added after epoch number")
     #parser.add_argument("--save_model_every", type=int, default=1000, help="save model weights and optimizer every n batches.")
     args = parser.parse_args()
@@ -63,23 +63,29 @@ def parse_args() -> Namespace:
 def load_model(args: Namespace) -> nn.Module:
     module = importlib.import_module("models." + args.task_mode)
     model_class = getattr(module, args.model)
-    model = model_class(n_classes=1000)
+    model = model_class(n_classes=144)
     return model
 
 
 def load_model_and_optimizer(args: Namespace) -> tp.Tuple[nn.Module, optim.SGD]:
-    model = load_model(args)
-    optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9, weight_decay=4e-5, nesterov=True)
     if args.from_pretrained is not None:
-        checkpoint = torch.load(args.from_pretrained)
-        model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        checkpoint = torch.load(args.from_pretrained, map_location=torch.device('cuda:0'))
         args.current_epoch = checkpoint['epoch']
-        print(f"Training from {args.current_epoch} epoch.")
+        print(f"Training from epoch number {args.current_epoch}.")
     else:
         print("Training from scratch.")
         args.current_epoch = 0
+    
+    model = load_model(args)
+    if args.from_pretrained is not None:
+        model.load_state_dict(checkpoint['model_state_dict'])
     model.to(device=args.device)
+    
+    #optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9, weight_decay=4e-5, nesterov=True)
+    optimizer = optim.Adam(model.parameters(), lr=0.0002, betas=(0.5, 0.999))
+    if args.from_pretrained is not None:
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+
     return model, optimizer
 
 
@@ -88,8 +94,10 @@ def test(model: nn.Module, test_dataloader: DataLoader):
     with torch.no_grad():
         model.eval()
         for image, label in test_dataloader:
+            label = label.to(device=args.device)
+            image = image.to(device=args.device)
             logits = model(image)
-            accuracy.append((torch.argmax(logits, dim=1) == label).numpy())
+            accuracy.append((torch.argmax(logits, dim=1) == label).cpu().numpy().mean())
     print("Mean accuracy =", np.mean(accuracy))
 
 
@@ -97,12 +105,13 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, train_dataloa
     criterion = nn.CrossEntropyLoss()
     losses = []
     accuracy = []
-    print(len(train_dataloader))
+    print("Number of batches in training data", len(train_dataloader))
     for epoch in range(1, args.epochs + 1):
         model.train()
         #print("very first model weights", torch.max(torch.abs(model.classification_head.fc.weight)))
+        #start = time.time()
         for i, (images, labels) in enumerate(train_dataloader):
-            start = time.time()
+            #start = time.time()
             optimizer.zero_grad()
             images = images.to(device=args.device)
             labels = labels.to(device=args.device)
@@ -115,11 +124,14 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, train_dataloa
             losses.append(loss.item())
             accuracy.append((torch.argmax(logits, dim=1) == labels).cpu().numpy().mean())
             #print("One batch took", time.time() - start)
+            #start = time.time()
             #print("model weights", torch.max(torch.abs(model.classification_head.fc.weight)))
             #print("model grads", torch.max(torch.abs(model.classification_head.fc.weight.grad)))
-            if i % args.verbose_every == 0 or i + 1 == len(train_dataloader):
-                print("Train loss: ", np.mean(losses))
+            if (i != 0 and i % args.verbose_every == 0) or i + 1 == len(train_dataloader):
+                print(f"Epoch = {epoch}, batches passed = {i}")
+                print("Loss: ", np.mean(losses))
                 print("Accuracy: ", np.mean(accuracy))
+                print()
                 losses = []
                 accuracy = []
         
@@ -136,11 +148,12 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, train_dataloa
 
         print("Val loss: ", np.mean(losses))
         print("Val accuracy: ", np.mean(accuracy))
+        print()
         current_epoch = epoch + args.current_epoch
         torch.save({'epoch': current_epoch,
-                    'model_state_dict': model.to("cpu").state_dict(),
+                    'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict()}, args.save_model_path + str(current_epoch) + ".pt")
-    torch.save(model.to("cpu").state_dict(), "./weights" + args.model + ".pt")
+    torch.save(model.state_dict(), "./weights" + args.model + ".pt")
     
 
 def main(args: Namespace):
@@ -153,10 +166,11 @@ def main(args: Namespace):
     if args.learning_mode == "test":
         model = load_model(args)
         model.load_state_dict(torch.load(args.weights))
+        model.to(device=args.device)
         test(model, test_dataloader)
     else:
         model, optimizer = load_model_and_optimizer(args)
-        train(args, model, optimizer, test_dataloader, test_dataloader)
+        train(args, model, optimizer, train_dataloader, test_dataloader)
 
 
 if __name__ == "__main__":
