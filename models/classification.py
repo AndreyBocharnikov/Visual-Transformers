@@ -70,6 +70,17 @@ class ResNet18(nn.Module):
                                     BasicBlock(512, 512))
         self.classification_head = ClassificationHead(in_dim=512, n_classes=n_classes, pooling=nn.AdaptiveAvgPool2d((1, 1)))
 
+        #self.init_layer()
+
+    def init_layer(self, layer):
+        if type(layer) == nn.Conv2d:
+            print(layer)
+            torch.nn.init.kaiming_normal_(layer.weight, nonlinearity='relu')
+
+    def init_weights(self):
+        self.init_layer(self.backbone)
+        self.init_layer(self.conv_5)
+  
     def forward(self, X):
         X = self.backbone(X)
         X = self.conv_5(X)
@@ -77,15 +88,15 @@ class ResNet18(nn.Module):
 
 
 class VT_ResNet18(nn.Module):
-    def __init__(self, n_classes=1000):
+    def __init__(self, n_classes):
         super().__init__()
         self.backbone = make_resnet14_backbone()
-        tokenizer1 = FilterBasedTokenizer(feature_map_cs=256, visual_tokens_cs=1024, n_visual_tokens=8)
+        tokenizer1 = FilterBasedTokenizer(feature_map_cs=256, visual_tokens_cs=1024, n_visual_tokens=16)
         self.vt1 = VisualTransformer(tokenizer1, is_last=False)
         tokenizer2 = RecurrentTokenizer(feature_map_cs=256, visual_tokens_cs=1024)
         self.vt2 = VisualTransformer(tokenizer2, is_last=True)
 
-        self.classification_head = ClassificationHead(in_dim=8, n_classes=n_classes, pooling=nn.AdaptiveAvgPool1d(1))
+        self.classification_head = ClassificationHead(in_dim=16, n_classes=n_classes, pooling=nn.AdaptiveAvgPool1d(1))
 
     def forward(self, X):
         feature_map = self.backbone(X)

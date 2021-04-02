@@ -33,9 +33,9 @@ def parse_args() -> Namespace:
 
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--batch_size", type=int, default=256)
     #parser.add_argument("--clip_grad_norm", type=float, default=1)
-    parser.add_argument("--verbose_every", type=int, default=1500, help="print loss and metrics every n batches.")
+    parser.add_argument("--verbose_every", type=int, default=100, help="print loss and metrics every n batches.")
     parser.add_argument("--save_model_path", default="./state_dict", help="Dont add .pt, it will be added after epoch number")
     #parser.add_argument("--save_model_every", type=int, default=1000, help="save model weights and optimizer every n batches.")
     args = parser.parse_args()
@@ -81,8 +81,8 @@ def load_model_and_optimizer(args: Namespace) -> tp.Tuple[nn.Module, optim.SGD]:
         model.load_state_dict(checkpoint['model_state_dict'])
     model.to(device=args.device)
     
-    #optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9, weight_decay=4e-5, nesterov=True)
-    optimizer = optim.Adam(model.parameters(), lr=0.0002, betas=(0.5, 0.999))
+    optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9, weight_decay=4e-5, nesterov=True)
+    #optimizer = optim.Adam(model.parameters(), lr=0.0002, betas=(0.5, 0.999))
     if args.from_pretrained is not None:
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
@@ -174,14 +174,14 @@ def main(args: Namespace):
 
 
 if __name__ == "__main__":
-    #args = parse_args()
-    #print(args)
-    #main(args)
+    args = parse_args()
+    print(args)
+    main(args)
 
-    pretrained_weights = models.resnet50(pretrained=True).state_dict()
-    pretrained_weights = change_names(pretrained_weights)
-    my_resnet = ResNet50Backbone()
-    my_resnet.load_state_dict(pretrained_weights)
+    #pretrained_weights = models.resnet50(pretrained=True).state_dict()
+    #pretrained_weights = change_names(pretrained_weights)
+    #my_resnet = ResNet50Backbone()
+    #my_resnet.load_state_dict(pretrained_weights)
 
     #state = models.resnet50(pretrained=True).state_dict()
     #my_resnet.load_state_dict(state)
