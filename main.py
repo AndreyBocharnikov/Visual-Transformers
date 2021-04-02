@@ -11,8 +11,14 @@ import torch.nn as nn
 import torchvision
 import torch.optim as optim
 from torch.utils.data import DataLoader
+from torchvision.models import resnet50
+import torchvision.models as models
 
 from Datasets import get_ImageNet_train, get_ImageNet_val
+from models.classification import ResNet18
+from models.semantic_segmentation import ResNet50Backbone
+from utils import change_names
+
 
 def parse_args() -> Namespace:
     parser = ArgumentParser()
@@ -154,8 +160,15 @@ def main(args: Namespace):
 
 
 if __name__ == "__main__":
-    args = parse_args()
-    print(args)
-    main(args)
+    #args = parse_args()
+    #print(args)
+    #main(args)
 
+    pretrained_weights = models.resnet50(pretrained=True).state_dict()
+    pretrained_weights = change_names(pretrained_weights)
+    my_resnet = ResNet50Backbone()
+    my_resnet.load_state_dict(pretrained_weights)
+
+    #state = models.resnet50(pretrained=True).state_dict()
+    #my_resnet.load_state_dict(state)
 # python main.py classification train
