@@ -101,7 +101,7 @@ class SemanticSegmentationBranch(nn.Module):
 
         self.final_conv = nn.Conv2d(128, n_classes, kernel_size=1)
         self.upsample = nn.Upsample(scale_factor=4, mode="bilinear")
-        self.softmax = nn.Softmax(dim=)
+        self.softmax = nn.Softmax(dim=x)
 
     def forward(self, p2, p3, p4, p5):
         g2 = self.u2(p2)
