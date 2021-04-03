@@ -81,15 +81,15 @@ class VT_ResNet18(nn.Module):
         super().__init__()
         self.backbone = make_resnet14_backbone()
         tokenizer1 = FilterBasedTokenizer(feature_map_cs=256, visual_tokens_cs=1024, n_visual_tokens=8)
-        self.vt1 = VisualTransformer(tokenizer1, is_last=False)
+        self.vt1 = VisualTransformer(tokenizer1, use_projector=True)
         tokenizer2 = RecurrentTokenizer(feature_map_cs=256, visual_tokens_cs=1024)
-        self.vt2 = VisualTransformer(tokenizer2, is_last=True)
+        self.vt2 = VisualTransformer(tokenizer2, use_projector=False)
 
         self.classification_head = ClassificationHead(in_dim=8, n_classes=n_classes, pooling=nn.AdaptiveAvgPool1d(1))
 
     def forward(self, X):
         feature_map = self.backbone(X)
-        feature_map = torch.flatten(feature_map, start_dim=2).permute(0, 2, 1)
+        feature_map = torch.flatten(feature_map, start_dim=2)
         feature_map, visual_tokens = self.vt1(feature_map, None)
         visual_tokens = self.vt2(feature_map, visual_tokens)
 
