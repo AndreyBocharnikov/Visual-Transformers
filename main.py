@@ -35,7 +35,7 @@ def parse_args() -> Namespace:
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--batch_size", type=int, default=256)
     #parser.add_argument("--clip_grad_norm", type=float, default=1)
-    parser.add_argument("--verbose_every", type=int, default=1, help="print loss and metrics every n batches.")
+    parser.add_argument("--verbose_every", type=int, default=100, help="print loss and metrics every n batches.")
     parser.add_argument("--save_model_path", default="./state_dict", help="Dont add .pt, it will be added after epoch number")
     #parser.add_argument("--save_model_every", type=int, default=1000, help="save model weights and optimizer every n batches.")
     args = parser.parse_args()
