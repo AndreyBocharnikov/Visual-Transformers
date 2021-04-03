@@ -10,6 +10,7 @@ import torch
 import torch.nn as nn
 import torchvision
 import torch.optim as optim
+from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 from torchvision.models import resnet50
 import torchvision.models as models
@@ -32,7 +33,7 @@ def parse_args() -> Namespace:
                                                   "Used only if learning_mode=Train")
 
     parser.add_argument("--device", default="cuda:0")
-    parser.add_argument("--epochs", type=int, default=10)
+    parser.add_argument("--epochs", type=int, default=15)
     parser.add_argument("--batch_size", type=int, default=256)
     #parser.add_argument("--clip_grad_norm", type=float, default=1)
     parser.add_argument("--verbose_every", type=int, default=100, help="print loss and metrics every n batches.")
@@ -82,6 +83,7 @@ def load_model_and_optimizer(args: Namespace) -> tp.Tuple[nn.Module, optim.SGD]:
     model.to(device=args.device)
     
     optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9, weight_decay=4e-5, nesterov=True)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
     #optimizer = optim.Adam(model.parameters(), lr=0.0002, betas=(0.5, 0.999))
     if args.from_pretrained is not None:
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
@@ -112,6 +114,7 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, train_dataloa
         #start = time.time()
         for i, (images, labels) in enumerate(train_dataloader):
             #start = time.time()
+            scheduler.step()
             optimizer.zero_grad()
             images = images.to(device=args.device)
             labels = labels.to(device=args.device)

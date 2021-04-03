@@ -4,7 +4,8 @@ import torch.nn as nn
 from models.visual_transformer import VisualTransformer, FilterBasedTokenizer, RecurrentTokenizer
 
 def init_weights(layer):
-    if type(layer) == nn.Conv2d:
+    if type(layer) == nn.Conv2d or type(layer) == nn.Conv1d:
+        # print(layer)
         torch.nn.init.kaiming_normal_(layer.weight, nonlinearity='relu')
 
 
@@ -74,11 +75,8 @@ class ResNet18(nn.Module):
                                     BasicBlock(512, 512))
         self.classification_head = ClassificationHead(in_dim=512, n_classes=n_classes, pooling=nn.AdaptiveAvgPool2d((1, 1)))
 
+        # TODO self.apply(init_weights)
 
-    def init_weights(self):
-        self.init_layer(self.backbone)
-        self.init_layer(self.conv_5)
-  
     def forward(self, X):
         X = self.backbone(X)
         X = self.conv_5(X)
@@ -96,12 +94,8 @@ class VT_ResNet18(nn.Module):
 
         self.classification_head = ClassificationHead(in_dim=1024, n_classes=n_classes, pooling=nn.AdaptiveAvgPool1d(1))
 
-        self.init_layers()
+        self.apply(init_weights)
     
-    def init_layers(self):
-      self.backbone.apply(init_weights)
-    
-
     def forward(self, X):
         feature_map = self.backbone(X)
         feature_map = torch.flatten(feature_map, start_dim=2)
