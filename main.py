@@ -37,7 +37,7 @@ def parse_args() -> Namespace:
     parser.add_argument("--batch_size", type=int, default=256)
     #parser.add_argument("--clip_grad_norm", type=float, default=1)
     parser.add_argument("--verbose_every", type=int, default=100, help="print loss and metrics every n batches.")
-    parser.add_argument("--save_model_path", default="./state_dict", help="Dont add .pt, it will be added after epoch number")
+    parser.add_argument("--save_model_path", default="/content/drive/MyDrive/weights/classification/adv training/", help="Dont add .pt, it will be added after epoch number")
     #parser.add_argument("--save_model_every", type=int, default=1000, help="save model weights and optimizer every n batches.")
     args = parser.parse_args()
 
@@ -82,7 +82,7 @@ def load_model_and_optimizer(args: Namespace) -> tp.Tuple[nn.Module, optim.SGD]:
         model.load_state_dict(checkpoint['model_state_dict'])
     model.to(device=args.device)
     
-    optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9, weight_decay=4e-5, nesterov=True)
+    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=4e-5, nesterov=True)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
     #optimizer = optim.Adam(model.parameters(), lr=0.0002, betas=(0.5, 0.999))
     if args.from_pretrained is not None:
@@ -108,7 +108,7 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, train_dataloa
     losses = []
     accuracy = []
     print("Number of batches in training data", len(train_dataloader))
-    for epoch in range(1, args.epochs + 1):
+    for epoch in range(args.current_epoch + 1, args.epochs + 1):
         model.train()
         #print("very first model weights", torch.max(torch.abs(model.classification_head.fc.weight)))
         #start = time.time()
@@ -152,11 +152,10 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, train_dataloa
         print("Val loss: ", np.mean(losses))
         print("Val accuracy: ", np.mean(accuracy))
         print()
-        current_epoch = epoch + args.current_epoch
-        torch.save({'epoch': current_epoch,
+        torch.save({'epoch': epoch,
                     'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict()}, args.save_model_path + str(current_epoch) + ".pt")
-    torch.save(model.state_dict(), "./weights" + args.model + ".pt")
+                    'optimizer_state_dict': optimizer.state_dict()}, args.save_model_path + "state_dict_" + args.model + "_" + str(epoch) + ".pt")
+    torch.save(model.state_dict(), args.save_model_path + "weights_" + args.model + ".pt")
     
 
 def main(args: Namespace):
