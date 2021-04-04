@@ -43,6 +43,8 @@ def parse_args() -> Namespace:
 
     if args.task_mode not in ["classification", "semantic_segmentation"]:
         raise ValueError(f"task_model should be classification or semantic_segmentation not {args.task_model}")
+    if args.learning_mode not in ["train", "test"]:
+        raise ValueError(f"learning_mode should be train or test not {args.task_model}")
     if args.learning_mode == "test" and args.weights is None:
         raise ValueError(f"provide weights to use model in test mode")
 
@@ -114,7 +116,6 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, tr
         #start = time.time()
         for i, (images, labels) in enumerate(train_dataloader):
             #start = time.time()
-            scheduler.step()
             optimizer.zero_grad()
             images = images.to(device=args.device)
             labels = labels.to(device=args.device)
