@@ -88,7 +88,7 @@ def load_model_and_optimizer(args: Namespace) -> tp.Tuple[nn.Module, optim.SGD]:
     if args.from_pretrained is not None:
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
-    return model, optimizer
+    return model, optimizer, scheduler
 
 
 def test(model: nn.Module, test_dataloader: DataLoader):
@@ -103,7 +103,7 @@ def test(model: nn.Module, test_dataloader: DataLoader):
     print("Mean accuracy =", np.mean(accuracy))
 
 
-def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, train_dataloader: DataLoader, val_dataloader: DataLoader):
+def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, train_dataloader: DataLoader, val_dataloader: DataLoader):
     criterion = nn.CrossEntropyLoss()
     losses = []
     accuracy = []
@@ -148,7 +148,7 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, train_dataloa
 
                 accuracy.append(current_accuracy)
                 losses.append(loss.item())
-
+        scheduler.step()
         print("Val loss: ", np.mean(losses))
         print("Val accuracy: ", np.mean(accuracy))
         print()
@@ -171,8 +171,8 @@ def main(args: Namespace):
         model.to(device=args.device)
         test(model, test_dataloader)
     else:
-        model, optimizer = load_model_and_optimizer(args)
-        train(args, model, optimizer, train_dataloader, test_dataloader)
+        model, optimizer, scheduler = load_model_and_optimizer(args)
+        train(args, model, optimizer, scheduler, train_dataloader, test_dataloader)
 
 
 if __name__ == "__main__":
