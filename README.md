@@ -15,5 +15,6 @@ Unofficial implimentation of Visual Transformers: Token-based Image Representati
 ## Results:
 
 ## Weights:
-
+* classification: [baseline](https://drive.google.com/file/d/1-7zrZD2TekIIcAa4im0i5fi31ZG90sP9/view?usp=sharing), [VT_ResNet](TODO)
+* semantic segmentation: [baseline](TODO), [VT](TODO)
   
