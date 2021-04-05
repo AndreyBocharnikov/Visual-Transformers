@@ -3,7 +3,7 @@ Unofficial implimentation of Visual Transformers: Token-based Image Representati
 
 ## Usage:
 `python main.py task_mode learning_mode data --model --weights`, where:
-* `task_mode`: `classification` or 'semantic_segmentation' for corresponding task
+* `task_mode`: `classification` or `semantic_segmentation` for corresponding task
 * `learning_mode`: `train` to train `--model` from scratch, `test` to validate `--model` with `--weights` on validation data.
 * `data`: path to dataset, in case of classification should be path to image net, in case of semantic segmentation to coco.
 * `--model`:   
