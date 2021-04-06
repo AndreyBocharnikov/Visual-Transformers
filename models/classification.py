@@ -3,6 +3,11 @@ import torch.nn as nn
 
 from models.visual_transformer import VisualTransformer, FilterBasedTokenizer, RecurrentTokenizer
 
+def init_weights(layer):
+    if type(layer) == nn.Conv2d or type(layer) == nn.Conv1d:
+        # print(layer)
+        torch.nn.init.kaiming_normal_(layer.weight, nonlinearity='relu')
+
 
 class BasicBlock(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1):
@@ -70,17 +75,8 @@ class ResNet18(nn.Module):
                                     BasicBlock(512, 512))
         self.classification_head = ClassificationHead(in_dim=512, n_classes=n_classes, pooling=nn.AdaptiveAvgPool2d((1, 1)))
 
-        #self.init_layer()
+        # TODO self.apply(init_weights)
 
-    def init_layer(self, layer):
-        if type(layer) == nn.Conv2d:
-            print(layer)
-            torch.nn.init.kaiming_normal_(layer.weight, nonlinearity='relu')
-
-    def init_weights(self):
-        self.init_layer(self.backbone)
-        self.init_layer(self.conv_5)
-  
     def forward(self, X):
         X = self.backbone(X)
         X = self.conv_5(X)
@@ -91,13 +87,15 @@ class VT_ResNet18(nn.Module):
     def __init__(self, n_classes):
         super().__init__()
         self.backbone = make_resnet14_backbone()
-        tokenizer1 = FilterBasedTokenizer(feature_map_cs=256, visual_tokens_cs=1024, n_visual_tokens=8)
+        tokenizer1 = FilterBasedTokenizer(feature_map_cs=256, visual_tokens_cs=1024, n_visual_tokens=16)
         self.vt1 = VisualTransformer(tokenizer1, use_projector=True)
         tokenizer2 = RecurrentTokenizer(feature_map_cs=256, visual_tokens_cs=1024)
         self.vt2 = VisualTransformer(tokenizer2, use_projector=False)
 
-        self.classification_head = ClassificationHead(in_dim=16, n_classes=n_classes, pooling=nn.AdaptiveAvgPool1d(1))
+        self.classification_head = ClassificationHead(in_dim=1024, n_classes=n_classes, pooling=nn.AdaptiveAvgPool1d(1))
 
+        self.apply(init_weights)
+    
     def forward(self, X):
         feature_map = self.backbone(X)
         feature_map = torch.flatten(feature_map, start_dim=2)
