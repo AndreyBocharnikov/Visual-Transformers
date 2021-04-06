@@ -100,7 +100,7 @@ class SemanticSegmentationBranch(nn.Module):
 
         self.final_conv = nn.Conv2d(128, n_classes, kernel_size=1)
         self.upsample = nn.Upsample(scale_factor=4, mode="bilinear")
-        self.softmax = nn.Softmax(dim=x)
+        self.softmax = nn.Softmax(dim=1)
 
     def forward(self, p2, p3, p4, p5):
         g2 = self.u2(p2)
@@ -110,6 +110,7 @@ class SemanticSegmentationBranch(nn.Module):
 
         result = self.final_conv(g2 + g3 + g4 + g5)
         result = self.upsample(result)
+        print("Output shape =", self.softmax(result).shape)
         return self.softmax(result)
 
 
@@ -117,6 +118,7 @@ class PanopticFPN(nn.Module):
     def __init__(self, n_classes):
         super().__init__()
         self.backbone = ResNet50Backbone()
+        # TODO pretrain + eval mode
         self.skip_con_conv2 = nn.Conv2d(256, 256, kernel_size=1)
         self.skip_con_conv3 = nn.Conv2d(512, 256, kernel_size=1)
         self.skip_con_conv4 = nn.Conv2d(1024, 256, kernel_size=1)

@@ -27,13 +27,11 @@ class CocoStuff164k(Dataset):
       image = resize_image(image)
       label = resize_label(label)
 
-        # Random crop
       i, j, h, w = transforms.RandomCrop.get_params(
             image, output_size=(crop, crop))
       image = TF.crop(image, i, j, h, w)
       label = TF.crop(label, i, j, h, w)
 
-        # Random horizontal flipping
       if random.random() > 0.5:
           image = TF.hflip(image)
           label = TF.hflip(label)
@@ -59,9 +57,6 @@ class CocoStuff164k(Dataset):
 
         image = Image.open(image_path)
         label = ImageOps.grayscale(Image.open(label_path))
-        c = Counter(tuple(np.asarray(label).flatten().tolist()))
-        print('n_labels', len(sorted(c.keys())))
-        
         
         h, w = label.size
         scale_factor = np.random.choice(self.scales)
@@ -71,18 +66,11 @@ class CocoStuff164k(Dataset):
 
         image = self.normalize(image)
         label = np.asarray(label, np.int32)
-
-        c = Counter(tuple(np.asarray(label).flatten().tolist()))
-        print('n_labels', (sorted(c.keys())))
-        print(label.max())
         label = np.maximum(0, label - 91)
 
-        print(image.shape, label.shape)
-        print(image.mean(), label.min(), label.max())
         return image, label
 
     def __len__(self):
-      print("called")
       return len(self.files)
 
 if __name__ == "__main__":
@@ -91,8 +79,6 @@ if __name__ == "__main__":
     transforms.RandomHorizontalFlip(p=0.5),
     #transforms.ToTensor(),
   ])
-  data = CocoStuff164k('/content/drive/MyDrive/ML/dataset/', "val2017")
-  for _ in data:
-    break
-
+  data = CocoStuff164k('/content/drive/MyDrive/ML/dataset/', "train2017")
+  
 

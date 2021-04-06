@@ -16,6 +16,7 @@ from torchvision.models import resnet50
 import torchvision.models as models
 
 from data.classification import get_ImageNet_train, get_ImageNet_val
+from data.semantic_segmentation import CocoStuff164k
 from models.classification import ResNet18
 from models.semantic_segmentation import ResNet50Backbone
 from utils import change_names
@@ -52,14 +53,18 @@ def parse_args() -> Namespace:
         if args.task_mode == "classification":
             args.model = "VT_ResNet18"
         else:
-            args.model = "" # TODO
+            args.model = "VT_FPN"
     else:
         if args.task_mode == "classification":
             if args.model not in ["ResNet18", "VT_ResNet18"]:
                 raise ValueError(f"Only ResNet18 and VT_ResNet18 models supported for classification, not {args.model}")
         else:
-            if args.model not in ["", ""]: # TODO
+            if args.model not in ["PanopticFPN", "VT_FPN"]:
                 raise ValueError("") # TODO
+    if args.task_mode == "classification":
+      args.ignore_index = None
+    else:
+      args.ignore_index = 255 - 91
     return args
 
 
@@ -106,7 +111,7 @@ def test(model: nn.Module, test_dataloader: DataLoader):
 
 
 def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, train_dataloader: DataLoader, val_dataloader: DataLoader):
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(ignore_index=-100 if args.ignore_index is None else args.ignore_index)
     losses = []
     accuracy = []
     print("Number of batches in training data", len(train_dataloader))
@@ -164,8 +169,8 @@ def main(args: Namespace):
       train_dataloader = get_ImageNet_train(args)
       test_dataloader = get_ImageNet_val(args)
     else:
-      train_dataloader = None # TODO
-      test_dataloader = None # TODO
+      train_dataloader = CocoStuff164k(args.path, "train2017")
+      test_dataloader = CocoStuff164k(args.path, "val2017")
     if args.learning_mode == "test":
         model = load_model(args)
         model.load_state_dict(torch.load(args.weights))
