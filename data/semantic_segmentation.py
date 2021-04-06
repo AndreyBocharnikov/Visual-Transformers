@@ -3,9 +3,14 @@ import cv2
 from glob import glob
 import numpy as np
 from PIL import Image, ImageOps
+import random
+import numpy as np
+from collections import Counter
 
+import torch
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
+import torchvision.transforms.functional as TF
 
 class CocoStuff164k(Dataset):
     def get_file_names(self):
@@ -16,11 +21,35 @@ class CocoStuff164k(Dataset):
         self.files = file_list
         print("n_files =", len(self.files))
 
-    def __init__(self, root, split, trans=None):
+    def transform(self, image, label, h, w, crop):
+      resize_image = transforms.Resize(size=(h, w))
+      resize_label = transforms.Resize(size=(h, w), interpolation=transforms.InterpolationMode.NEAREST)
+      image = resize_image(image)
+      label = resize_label(label)
+
+        # Random crop
+      i, j, h, w = transforms.RandomCrop.get_params(
+            image, output_size=(crop, crop))
+      image = TF.crop(image, i, j, h, w)
+      label = TF.crop(label, i, j, h, w)
+
+        # Random horizontal flipping
+      if random.random() > 0.5:
+          image = TF.hflip(image)
+          label = TF.hflip(label)
+      return image, label
+
+    def __init__(self, root, split, crop=321, scales=(0.5, 0.75, 1.0, 1.25, 1.5), trans=None):
         if split not in ["train2017", "val2017"]:
             raise ValueError("split of Dataset should be train2017 or val2017.")
         self.root = root
         self.split = split
+        self.crop = crop
+        self.scales = scales
+        self.normalize = transforms.Compose([
+          transforms.ToTensor(),
+          transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        ])
         self.get_file_names()
 
     def __getitem__(self, idx):
@@ -30,14 +59,30 @@ class CocoStuff164k(Dataset):
 
         image = Image.open(image_path)
         label = ImageOps.grayscale(Image.open(label_path))
-        #image = cv2.imread(image_path, cv2.IMREAD_COLOR).astype(np.float32)
-        #label = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)
-        if trans is not None:
-          image = trans(image)
-        print(image.size, label.size)
-        print(np.asarray(image)[:5], np.asarray(label)[:5])
-    
+        c = Counter(tuple(np.asarray(label).flatten().tolist()))
+        print('n_labels', len(sorted(c.keys())))
+        
+        
+        h, w = label.size
+        scale_factor = np.random.choice(self.scales)
+        h, w = int(h * scale_factor), int(w * scale_factor)
+        crop = int(self.crop * scale_factor)
+        image, label = self.transform(image, label, h, w, crop)
+
+        image = self.normalize(image)
+        label = np.asarray(label, np.int32)
+
+        c = Counter(tuple(np.asarray(label).flatten().tolist()))
+        print('n_labels', (sorted(c.keys())))
+        print(label.max())
+        label = np.maximum(0, label - 91)
+
+        print(image.shape, label.shape)
+        print(image.mean(), label.min(), label.max())
+        return image, label
+
     def __len__(self):
+      print("called")
       return len(self.files)
 
 if __name__ == "__main__":
@@ -46,7 +91,7 @@ if __name__ == "__main__":
     transforms.RandomHorizontalFlip(p=0.5),
     #transforms.ToTensor(),
   ])
-  data = CocoStuff164k('/content/drive/MyDrive/ML/dataset/', "val2017", trans)
+  data = CocoStuff164k('/content/drive/MyDrive/ML/dataset/', "val2017")
   for _ in data:
     break
 
