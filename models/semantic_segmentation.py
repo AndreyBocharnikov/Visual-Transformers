@@ -86,7 +86,6 @@ class SemanticSegmentationBranch(nn.Module):
         return nn.Sequential(nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
                              nn.GroupNorm(32, out_channels),
                              nn.ReLU(),
-
                              nn.Upsample(scale_factor=2, mode="bilinear"))
 
     def __init__(self, n_classes):

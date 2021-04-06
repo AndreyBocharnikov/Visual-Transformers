@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 from torchvision.models import resnet50
 import torchvision.models as models
 
-from Datasets import get_ImageNet_train, get_ImageNet_val
+from data.classification import get_ImageNet_train, get_ImageNet_val
 from models.classification import ResNet18
 from models.semantic_segmentation import ResNet50Backbone
 from utils import change_names
