@@ -53,7 +53,7 @@ class CocoStuff164k(Dataset):
         
     def transform(self, image, label):
       i, j, h, w = transforms.RandomResizedCrop.get_params(
-        image, scale=(0.08, 1.0), ratio=(0.75, 1.3333333333333333))
+        image, scale=(0.75, 1.0), ratio=(0.75, 1.3333333333333333))
 
       #i, j, h, w = transforms.RandomCrop.get_params(
       #      image, output_size=(crop, crop))

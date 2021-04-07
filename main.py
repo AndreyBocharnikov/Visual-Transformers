@@ -66,6 +66,8 @@ def parse_args() -> Namespace:
       args.ignore_index = None
       args.batch_size = 256
       args.lr = 0.1
+      args.weight_decay = 4e-5
+      args.nesterov = True
       args.epochs = 15
       args.metric = accuracy
       args.n_classes = 144
@@ -74,9 +76,11 @@ def parse_args() -> Namespace:
       args.ignore_index = 255 - 91
       args.batch_size = 32
       if args.model == "PanopticFPN":
-        args.lr = 0.01
+        args.lr = 0.1
       else:
         args.lr = 0.04
+      args.weight_decay = 1e-5
+      args.nesterov = False
       args.epochs = 3
       args.metric = mIOU
       args.n_classes = 92
@@ -105,7 +109,7 @@ def load_model_and_optimizer(args: Namespace) -> tp.Tuple[nn.Module, optim.SGD]:
         model.load_state_dict(checkpoint['model_state_dict'])
     model.to(device=args.device)
     
-    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=4e-5, nesterov=True)
+    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay, nesterov=args.nesterov)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
     #optimizer = optim.Adam(model.parameters(), lr=0.0002, betas=(0.5, 0.999))
     if args.from_pretrained is not None:
@@ -141,8 +145,6 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, tr
             images = images.to(device=args.device)
             labels = labels.to(device=args.device)
             logits = model(images)
-            # b, C, C
-            # b, C, W, H, b, W, H
             loss = criterion(logits, labels)
             loss.backward()
             #torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip_grad_norm)

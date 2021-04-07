@@ -1,10 +1,13 @@
 import typing as tp
 import copy
 
+from utils import change_names
+
 import torch
 import torch.nn as nn
 
 from models.visual_transformer import VisualTransformer, FilterBasedTokenizer, RecurrentTokenizer
+import torchvision.models as models
 
 
 def make_layer(first_layer, type_of_rest_layers, n_rest_layers):
@@ -113,10 +116,22 @@ class SemanticSegmentationBranch(nn.Module):
 
 
 class PanopticFPN(nn.Module):
+    def load_resnet(self):
+      pretrained_weights = models.resnet50(pretrained=True).state_dict()
+      my_state_dict = change_names(pretrained_weights)
+      self.backbone.load_state_dict(my_state_dict)
+      self.backbone.apply(PanopticFPN.set_bn_eval)
+    
+    @staticmethod
+    def set_bn_eval(module):
+        if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
+            module.eval()
+
     def __init__(self, n_classes):
         super().__init__()
         self.backbone = ResNet50Backbone()
-        # TODO pretrain + eval mode
+        self.load_resnet()
+
         self.skip_con_conv2 = nn.Conv2d(256, 256, kernel_size=1)
         self.skip_con_conv3 = nn.Conv2d(512, 256, kernel_size=1)
         self.skip_con_conv4 = nn.Conv2d(1024, 256, kernel_size=1)
