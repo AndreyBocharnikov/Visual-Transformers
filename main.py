@@ -35,7 +35,7 @@ def parse_args() -> Namespace:
 
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--epochs", type=int, default=15)
-    parser.add_argument("--batch_size", type=int, default=256)
+    #parser.add_argument("--batch_size", type=int, default=256)
     #parser.add_argument("--clip_grad_norm", type=float, default=1)
     parser.add_argument("--verbose_every", type=int, default=100, help="print loss and metrics every n batches.")
     parser.add_argument("--save_model_path", default="/content/drive/MyDrive/weights/classification/adv training/", help="Dont add .pt, it will be added after epoch number")
@@ -63,8 +63,14 @@ def parse_args() -> Namespace:
                 raise ValueError("") # TODO
     if args.task_mode == "classification":
       args.ignore_index = None
+      args.batch_size = 256
+      args.lr = 0.1
+      args.epochs = 15
     else:
       args.ignore_index = 255 - 91
+      args.batch_size = 4
+      args.lr = 0.04
+      args.epochs = 3
     return args
 
 
@@ -89,7 +95,7 @@ def load_model_and_optimizer(args: Namespace) -> tp.Tuple[nn.Module, optim.SGD]:
         model.load_state_dict(checkpoint['model_state_dict'])
     model.to(device=args.device)
     
-    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=4e-5, nesterov=True)
+    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=4e-5, nesterov=True)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
     #optimizer = optim.Adam(model.parameters(), lr=0.0002, betas=(0.5, 0.999))
     if args.from_pretrained is not None:
@@ -131,7 +137,7 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, tr
             optimizer.step()
             
             losses.append(loss.item())
-            accuracy.append((torch.argmax(logits, dim=1) == labels).cpu().numpy().mean())
+            #accuracy.append((torch.argmax(logits, dim=1) == labels).cpu().numpy().mean())
             #print("One batch took", time.time() - start)
             #start = time.time()
             #print("model weights", torch.max(torch.abs(model.classification_head.fc.weight)))
@@ -139,7 +145,7 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, tr
             if (i != 0 and i % args.verbose_every == 0) or i + 1 == len(train_dataloader):
                 print(f"Epoch = {epoch}, batches passed = {i}")
                 print("Loss: ", np.mean(losses))
-                print("Accuracy: ", np.mean(accuracy))
+                #print("Accuracy: ", np.mean(accuracy))
                 print()
                 losses = []
                 accuracy = []
@@ -150,13 +156,13 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, tr
                 images = images.to(device=args.device)
                 logits = model(images).cpu()
                 loss = criterion(logits, labels)
-                current_accuracy = (torch.argmax(logits, dim=1) == labels).numpy().mean()
+                #current_accuracy = (torch.argmax(logits, dim=1) == labels).numpy().mean()
 
-                accuracy.append(current_accuracy)
+                #accuracy.append(current_accuracy)
                 losses.append(loss.item())
         scheduler.step()
         print("Val loss: ", np.mean(losses))
-        print("Val accuracy: ", np.mean(accuracy))
+        #print("Val accuracy: ", np.mean(accuracy))
         print()
         torch.save({'epoch': epoch,
                     'model_state_dict': model.state_dict(),
@@ -169,8 +175,10 @@ def main(args: Namespace):
       train_dataloader = get_ImageNet_train(args)
       test_dataloader = get_ImageNet_val(args)
     else:
-      train_dataloader = CocoStuff164k(args.path, "train2017")
-      test_dataloader = CocoStuff164k(args.path, "val2017")
+      train_dataset = CocoStuff164k(args.data, "train2017")
+      train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=4, shuffle=True)
+      test_dataset = CocoStuff164k(args.data, "val2017")
+      test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=4, shuffle=False)
     if args.learning_mode == "test":
         model = load_model(args)
         model.load_state_dict(torch.load(args.weights))

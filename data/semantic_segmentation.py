@@ -13,14 +13,17 @@ import torchvision.transforms as transforms
 import torchvision.transforms.functional as TF
 
 class CocoStuff164k(Dataset):
-    def get_file_names(self):
-        file_list = sorted(glob(os.path.join(self.root, "images", self.split, "*.jpg")))
-        print(os.path.join(self.root, "images", self.split, "*.jpg"))
-        print(len(file_list))
-        file_list = [f.split("/")[-1].replace(".jpg", "") for f in file_list]
+    def get_file_names(self, split):
+        if split == "train2017":
+          file_list = sorted(glob(os.path.join(self.root, "images", self.split, "*", "*.jpg")))
+          print(len(file_list))
+          file_list = ['/'.join(f.split("/")[-2:]).replace(".jpg", "") for f in file_list]
+        else:
+          file_list = sorted(glob(os.path.join(self.root, "images", self.split, "*.jpg")))
+          print(len(file_list))
+          file_list = [f.split("/")[-1].replace(".jpg", "") for f in file_list]  
         self.files = file_list
-        print("n_files =", len(self.files))
-
+        
     def transform(self, image, label, h, w, crop):
       resize_image = transforms.Resize(size=(h, w))
       resize_label = transforms.Resize(size=(h, w), interpolation=transforms.InterpolationMode.NEAREST)
@@ -48,7 +51,7 @@ class CocoStuff164k(Dataset):
           transforms.ToTensor(),
           transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
-        self.get_file_names()
+        self.get_file_names(split)
 
     def __getitem__(self, idx):
         image_id = self.files[idx]
@@ -80,5 +83,6 @@ if __name__ == "__main__":
     #transforms.ToTensor(),
   ])
   data = CocoStuff164k('/content/drive/MyDrive/ML/dataset/', "train2017")
-  
+  for image, label in data:
+    print(image.shape, label.shape)
 
