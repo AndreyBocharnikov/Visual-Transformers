@@ -20,7 +20,7 @@ from data.semantic_segmentation import CocoStuff164k
 from models.classification import ResNet18
 from models.semantic_segmentation import ResNet50Backbone
 from utils import change_names
-
+from data.semantic_segmentation import pad_images_and_labels
 
 def parse_args() -> Namespace:
     parser = ArgumentParser()
@@ -124,7 +124,7 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, tr
     for epoch in range(args.current_epoch + 1, args.epochs + 1):
         model.train()
         #print("very first model weights", torch.max(torch.abs(model.classification_head.fc.weight)))
-        #start = time.time()
+        start = time.time()
         for i, (images, labels) in enumerate(train_dataloader):
             #start = time.time()
             optimizer.zero_grad()
@@ -137,9 +137,10 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, tr
             optimizer.step()
             
             losses.append(loss.item())
+            #print("loss", loss.item())
             #accuracy.append((torch.argmax(logits, dim=1) == labels).cpu().numpy().mean())
             #print("One batch took", time.time() - start)
-            #start = time.time()
+            start = time.time()
             #print("model weights", torch.max(torch.abs(model.classification_head.fc.weight)))
             #print("model grads", torch.max(torch.abs(model.classification_head.fc.weight.grad)))
             if (i != 0 and i % args.verbose_every == 0) or i + 1 == len(train_dataloader):
@@ -176,9 +177,10 @@ def main(args: Namespace):
       test_dataloader = get_ImageNet_val(args)
     else:
       train_dataset = CocoStuff164k(args.data, "train2017")
-      train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=4, shuffle=True)
+      train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=32,
+                                shuffle=True) #collate_fn=pad_images_and_labels(args.ignore_index)
       test_dataset = CocoStuff164k(args.data, "val2017")
-      test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=4, shuffle=False)
+      test_dataloader = DataLoader(test_dataset, batch_size=1, num_workers=32, shuffle=False)
     if args.learning_mode == "test":
         model = load_model(args)
         model.load_state_dict(torch.load(args.weights))
