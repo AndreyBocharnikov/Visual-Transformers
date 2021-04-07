@@ -21,6 +21,7 @@ from models.classification import ResNet18
 from models.semantic_segmentation import ResNet50Backbone
 from utils import change_names
 from data.semantic_segmentation import pad_images_and_labels
+from utils import mIOU, accuracy
 
 def parse_args() -> Namespace:
     parser = ArgumentParser()
@@ -66,18 +67,22 @@ def parse_args() -> Namespace:
       args.batch_size = 256
       args.lr = 0.1
       args.epochs = 15
+      args.metric = mIOU
+      args.n_classes = 144
     else:
       args.ignore_index = 255 - 91
       args.batch_size = 4
       args.lr = 0.04
       args.epochs = 3
+      args.metric = accuracy
+      args.n_classes = 92
     return args
 
 
 def load_model(args: Namespace) -> nn.Module:
     module = importlib.import_module("models." + args.task_mode)
     model_class = getattr(module, args.model)
-    model = model_class(n_classes=144)
+    model = model_class(args.n_classes)
     return model
 
 
@@ -119,7 +124,7 @@ def test(model: nn.Module, test_dataloader: DataLoader):
 def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, train_dataloader: DataLoader, val_dataloader: DataLoader):
     criterion = nn.CrossEntropyLoss(ignore_index=-100 if args.ignore_index is None else args.ignore_index)
     losses = []
-    accuracy = []
+    metrics = []
     print("Number of batches in training data", len(train_dataloader))
     for epoch in range(args.current_epoch + 1, args.epochs + 1):
         model.train()
@@ -138,6 +143,8 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, tr
             
             losses.append(loss.item())
             #print("loss", loss.item())
+            current_metric = args.metric(logits, labels, args.n_classes)
+            metrics.append(current_metric)
             #accuracy.append((torch.argmax(logits, dim=1) == labels).cpu().numpy().mean())
             #print("One batch took", time.time() - start)
             start = time.time()
@@ -146,10 +153,10 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, tr
             if (i != 0 and i % args.verbose_every == 0) or i + 1 == len(train_dataloader):
                 print(f"Epoch = {epoch}, batches passed = {i}")
                 print("Loss: ", np.mean(losses))
-                #print("Accuracy: ", np.mean(accuracy))
+                print("Accuracy: ", np.mean(metrics))
                 print()
                 losses = []
-                accuracy = []
+                metrics = []
         
         model.eval()
         with torch.no_grad():
@@ -157,14 +164,14 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, tr
                 images = images.to(device=args.device)
                 logits = model(images).cpu()
                 loss = criterion(logits, labels)
-                #current_accuracy = (torch.argmax(logits, dim=1) == labels).numpy().mean()
-
-                #accuracy.append(current_accuracy)
+                current_metric = args.metric(logits, labels, args.n_classes)
+                metrics.append(current_metric)
                 losses.append(loss.item())
         scheduler.step()
         print("Val loss: ", np.mean(losses))
-        #print("Val accuracy: ", np.mean(accuracy))
+        print("Val metric: ", np.mean(metrics))
         print()
+        metrics, losses = [], []
         torch.save({'epoch': epoch,
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict()}, args.save_model_path + "state_dict_" + args.model + "_" + str(epoch) + ".pt")

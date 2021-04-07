@@ -6,6 +6,26 @@ def change_names(official_state_dict):
     return my_state_dict
 
 
+def mIOU(logits, labels, n_classes):
+  eps = 1e-7
+  prediction = torch.argmax(logits, dim=1)
+  result = []
+  for class_ in range(n_classes):
+    ground_truth = labels == class_
+    cur_predictions = predictions == class_
+
+    intersection = cur_predictions[ground_truth].long().sum().item()
+    union = ground_truth.long().sum().item() + cur_predictions.long().sum().item() - intersection
+    iou = intersection / (union + eps)
+    result.append(iou)
+  return np.mean(result)
+
+
+def accuracy(logits, labels, n_classes=None):
+  prediction = torch.argmax(logits, dim=1)
+  return (prediction == labels).mean()
+
+
 official_resnet_to_resnetBackbone = {
     "conv1.weight": "conv1.0.weight",
     "bn1.weight": "conv1.1.weight",

@@ -86,9 +86,9 @@ class CocoStuff164k(Dataset):
         image_path = os.path.join(self.root, "images", self.split, image_id + ".jpg")
         label_path = os.path.join(self.root, "annotations", self.split, image_id + ".png")
 
-        image = Image.open(image_path)
-        label = ImageOps.grayscale(Image.open(label_path))
-        
+        image = Image.open(image_path).convert('RGB')
+        label = Image.open(label_path) #ImageOps.grayscale(Image.open(label_path))
+        print(np.asarray(label).shape)
         #h, w = label.size
         #scale_factor = np.random.choice(self.scales)
         #h, w = int(h * scale_factor), int(w * scale_factor)
