@@ -39,7 +39,7 @@ def parse_args() -> Namespace:
     #parser.add_argument("--batch_size", type=int, default=256)
     #parser.add_argument("--clip_grad_norm", type=float, default=1)
     #parser.add_argument("--verbose_every", type=int, default=100, help="print loss and metrics every n batches.")
-    parser.add_argument("--save_model_path", default="/content/drive/MyDrive/weights/classification/adv training/", help="Dont add .pt, it will be added after epoch number")
+    parser.add_argument("--save_model_path", default="/content/drive/MyDrive/weights/semantic_segmentation/", help="Dont add .pt, it will be added after epoch number")
     #parser.add_argument("--save_model_every", type=int, default=1000, help="save model weights and optimizer every n batches.")
     args = parser.parse_args()
 
@@ -73,17 +73,17 @@ def parse_args() -> Namespace:
       args.n_classes = 144
       args.verbose_every = 100
     else:
-      args.ignore_index = 255 - 91
+      args.ignore_index = 255 - 92
       args.batch_size = 32
       if args.model == "PanopticFPN":
-        args.lr = 0.1
+        args.lr = 0.01
       else:
         args.lr = 0.04
       args.weight_decay = 1e-5
       args.nesterov = False
       args.epochs = 3
       args.metric = mIOU
-      args.n_classes = 92
+      args.n_classes = 91
       args.verbose_every = 25
     return args
 
@@ -139,6 +139,7 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, tr
         model.train()
         #print("very first model weights", torch.max(torch.abs(model.classification_head.fc.weight)))
         start = time.time()
+        """
         for i, (images, labels) in enumerate(train_dataloader):
             #start = time.time()
             optimizer.zero_grad()
@@ -166,17 +167,21 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, tr
                 print()
                 losses = []
                 metrics = []
-        
+        """
         model.eval()
         with torch.no_grad():
-            for images, labels in val_dataloader:
+            start = time.time()
+            for i, (images, labels) in enumerate(val_dataloader):
                 images = images.to(device=args.device)
-                logits = model(images).cpu()
-                loss = criterion(logits, labels)
+                logits = model(images)
+                loss = criterion(logits, labels.to(device=args.device))
                 current_metric = args.metric(logits, labels, args.n_classes)
                 metrics.append(current_metric)
                 losses.append(loss.item())
-        scheduler.step()
+                if i != 0 and i % 10 == 0:
+                  print(i, time.time() - start)
+                  start = time.time()
+        #scheduler.step()
         print("Val loss: ", np.mean(losses))
         print("Val metric: ", np.mean(metrics))
         print()
@@ -192,11 +197,11 @@ def main(args: Namespace):
       train_dataloader = get_ImageNet_train(args)
       test_dataloader = get_ImageNet_val(args)
     else:
-      train_dataset = CocoStuff164k(args.data, "train2017")
+      train_dataset = CocoStuff164k(args.data, "train2017", ignore_index=args.ignore_index)
       train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=32,
                                 shuffle=True) #collate_fn=pad_images_and_labels(args.ignore_index)
-      test_dataset = CocoStuff164k(args.data, "val2017")
-      test_dataloader = DataLoader(test_dataset, batch_size=1, num_workers=32, shuffle=False)
+      test_dataset = CocoStuff164k(args.data, "val2017", ignore_index=args.ignore_index)
+      test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=32, shuffle=False)
     if args.learning_mode == "test":
         model = load_model(args)
         model.load_state_dict(torch.load(args.weights))

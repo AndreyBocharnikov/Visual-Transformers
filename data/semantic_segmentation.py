@@ -70,11 +70,12 @@ class CocoStuff164k(Dataset):
           label = TF.hflip(label)
       return image, label
 
-    def __init__(self, root, split):
+    def __init__(self, root, split, ignore_index):
         if split not in ["train2017", "val2017"]:
             raise ValueError("split of Dataset should be train2017 or val2017.")
         self.root = root
         self.split = split
+        self.ignore_index = ignore_index
         self.normalize = transforms.Compose([
           transforms.ToTensor(),
           transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
@@ -95,9 +96,18 @@ class CocoStuff164k(Dataset):
         #crop = int(self.crop * scale_factor)
         if self.split == "train2017":
           image, label = self.transform(image, label)
+        else:
+          resize_image = transforms.Resize(size=(320, 320))
+          resize_label = transforms.Resize(size=(320, 320), interpolation=transforms.InterpolationMode.NEAREST)
+          image = resize_image(image)
+          label = resize_label(label)
+
         image = self.normalize(image)
         label = np.asarray(label, np.int64)
-        label = np.maximum(0, label - 91)
+        #label = np.maximum(0, label - 91)
+        label -= 92
+        label[label < 0] = self.ignore_index
+        
         #if image.shape != torch.Size([3, 320, 320]):
         #  print(image_path)
         return image, label
@@ -107,7 +117,7 @@ class CocoStuff164k(Dataset):
 
 if __name__ == "__main__":
   trans = transforms.Compose([
-    transforms.RandomCrop(321),
+    transforms.RandomCrop(512),
     transforms.RandomHorizontalFlip(p=0.5),
     #transforms.ToTensor(),
   ])
