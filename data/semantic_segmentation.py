@@ -88,13 +88,13 @@ class CocoStuff164k(Dataset):
 
         image = Image.open(image_path).convert('RGB')
         label = Image.open(label_path) #ImageOps.grayscale(Image.open(label_path))
-        print(np.asarray(label).shape)
+        
         #h, w = label.size
         #scale_factor = np.random.choice(self.scales)
         #h, w = int(h * scale_factor), int(w * scale_factor)
         #crop = int(self.crop * scale_factor)
-        image, label = self.transform(image, label)
-        print(np.asarray(image).shape)
+        if self.split == "train2017":
+          image, label = self.transform(image, label)
         image = self.normalize(image)
         label = np.asarray(label, np.int64)
         label = np.maximum(0, label - 91)

@@ -38,7 +38,7 @@ def parse_args() -> Namespace:
     parser.add_argument("--epochs", type=int, default=15)
     #parser.add_argument("--batch_size", type=int, default=256)
     #parser.add_argument("--clip_grad_norm", type=float, default=1)
-    parser.add_argument("--verbose_every", type=int, default=100, help="print loss and metrics every n batches.")
+    #parser.add_argument("--verbose_every", type=int, default=100, help="print loss and metrics every n batches.")
     parser.add_argument("--save_model_path", default="/content/drive/MyDrive/weights/classification/adv training/", help="Dont add .pt, it will be added after epoch number")
     #parser.add_argument("--save_model_every", type=int, default=1000, help="save model weights and optimizer every n batches.")
     args = parser.parse_args()
@@ -67,15 +67,20 @@ def parse_args() -> Namespace:
       args.batch_size = 256
       args.lr = 0.1
       args.epochs = 15
-      args.metric = mIOU
+      args.metric = accuracy
       args.n_classes = 144
+      args.verbose_every = 100
     else:
       args.ignore_index = 255 - 91
-      args.batch_size = 4
-      args.lr = 0.04
+      args.batch_size = 32
+      if args.model == "PanopticFPN":
+        args.lr = 0.01
+      else:
+        args.lr = 0.04
       args.epochs = 3
-      args.metric = accuracy
+      args.metric = mIOU
       args.n_classes = 92
+      args.verbose_every = 25
     return args
 
 
@@ -110,15 +115,15 @@ def load_model_and_optimizer(args: Namespace) -> tp.Tuple[nn.Module, optim.SGD]:
 
 
 def test(model: nn.Module, test_dataloader: DataLoader):
-    accuracy = []
+    metrics = []
     with torch.no_grad():
         model.eval()
         for image, label in test_dataloader:
             label = label.to(device=args.device)
             image = image.to(device=args.device)
             logits = model(image)
-            accuracy.append((torch.argmax(logits, dim=1) == label).cpu().numpy().mean())
-    print("Mean accuracy =", np.mean(accuracy))
+            metrics.append(args.metric(logits, label))
+    print("Mean metric =", np.mean(metrics))
 
 
 def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, train_dataloader: DataLoader, val_dataloader: DataLoader):
@@ -136,24 +141,26 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, tr
             images = images.to(device=args.device)
             labels = labels.to(device=args.device)
             logits = model(images)
+            # b, C, C
+            # b, C, W, H, b, W, H
             loss = criterion(logits, labels)
             loss.backward()
             #torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip_grad_norm)
             optimizer.step()
             
             losses.append(loss.item())
-            #print("loss", loss.item())
             current_metric = args.metric(logits, labels, args.n_classes)
             metrics.append(current_metric)
-            #accuracy.append((torch.argmax(logits, dim=1) == labels).cpu().numpy().mean())
             #print("One batch took", time.time() - start)
+            #print("loss", loss.item())
+            #print("metric", current_metric)
             start = time.time()
             #print("model weights", torch.max(torch.abs(model.classification_head.fc.weight)))
             #print("model grads", torch.max(torch.abs(model.classification_head.fc.weight.grad)))
-            if (i != 0 and i % args.verbose_every == 0) or i + 1 == len(train_dataloader):
+            if (i % args.verbose_every == 0) or i + 1 == len(train_dataloader):
                 print(f"Epoch = {epoch}, batches passed = {i}")
                 print("Loss: ", np.mean(losses))
-                print("Accuracy: ", np.mean(metrics))
+                print("Metric: ", np.mean(metrics))
                 print()
                 losses = []
                 metrics = []

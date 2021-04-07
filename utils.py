@@ -1,3 +1,6 @@
+import torch
+import numpy as np
+
 def change_names(official_state_dict):
     my_state_dict = {}
     for k, v in official_state_dict.items():
@@ -8,7 +11,7 @@ def change_names(official_state_dict):
 
 def mIOU(logits, labels, n_classes):
   eps = 1e-7
-  prediction = torch.argmax(logits, dim=1)
+  predictions = torch.argmax(logits, dim=1)
   result = []
   for class_ in range(n_classes):
     ground_truth = labels == class_
@@ -23,7 +26,7 @@ def mIOU(logits, labels, n_classes):
 
 def accuracy(logits, labels, n_classes=None):
   prediction = torch.argmax(logits, dim=1)
-  return (prediction == labels).mean()
+  return (prediction == labels).float().mean().item()
 
 
 official_resnet_to_resnetBackbone = {
