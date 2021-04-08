@@ -2,7 +2,7 @@ import os
 import cv2
 from glob import glob
 import numpy as np
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageFilter
 import random
 import numpy as np
 from collections import Counter
@@ -51,7 +51,32 @@ class CocoStuff164k(Dataset):
           file_list = [f.split("/")[-1].replace(".jpg", "") for f in file_list]  
         self.files = file_list
         
-    def transform(self, image, label):
+    def transform(self, image, label, base_size=512, crop_size=512):
+        short_size = random.randint(int(base_size * 0.5), int(base_size * 2.0))
+        w, h = image.size
+        if h > w:
+            ow = short_size
+            oh = int(1.0 * h * ow / w)
+        else:
+            oh = short_size
+            ow = int(1.0 * w * oh / h)
+        image = image.resize((ow, oh), Image.BILINEAR)
+        label = label.resize((ow, oh), Image.NEAREST)
+
+        if short_size < crop_size:
+          padw = max(0, crop_size - ow)
+          padh = max(0, crop_size - oh)
+          image = ImageOps.expand(image, border=(0, 0, padw, padh), fill=0)
+          label = ImageOps.expand(label, border=(0, 0, padw, padh), fill=self.ignore_index)
+
+        w, h = image.size
+        x1 = random.randint(0, w - crop_size)
+        y1 = random.randint(0, h - crop_size)
+        image = image.crop((x1, y1, x1 + crop_size, y1 + crop_size))
+        label = label.crop((x1, y1, x1 + crop_size, y1 + crop_size))
+        return image, label
+
+        """
       i, j, h, w = transforms.RandomResizedCrop.get_params(
         image, scale=(0.75, 1.0), ratio=(0.75, 1.3333333333333333))
 
@@ -69,6 +94,8 @@ class CocoStuff164k(Dataset):
           image = TF.hflip(image)
           label = TF.hflip(label)
       return image, label
+      """
+      
 
     def __init__(self, root, split, ignore_index):
         if split not in ["train2017", "val2017"]:

@@ -66,6 +66,7 @@ def parse_args() -> Namespace:
       args.ignore_index = None
       args.batch_size = 256
       args.lr = 0.1
+      args.update_every = 1
       args.weight_decay = 4e-5
       args.nesterov = True
       args.epochs = 15
@@ -74,11 +75,12 @@ def parse_args() -> Namespace:
       args.verbose_every = 100
     else:
       args.ignore_index = 255 - 92
-      args.batch_size = 32
+      args.batch_size = 8
       if args.model == "PanopticFPN":
         args.lr = 0.01
       else:
         args.lr = 0.04
+      args.update_every = 2
       args.weight_decay = 1e-5
       args.nesterov = False
       args.epochs = 10
@@ -110,7 +112,7 @@ def load_model_and_optimizer(args: Namespace) -> tp.Tuple[nn.Module, optim.SGD]:
     model.to(device=args.device)
     
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay, nesterov=args.nesterov)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
     #optimizer = optim.Adam(model.parameters(), lr=0.0002, betas=(0.5, 0.999))
     if args.from_pretrained is not None:
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
@@ -145,10 +147,11 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, tr
             images = images.to(device=args.device)
             labels = labels.to(device=args.device)
             logits = model(images)
-            loss = criterion(logits, labels)
+            loss = criterion(logits, labels) / args.update_every
             loss.backward()
             #torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip_grad_norm)
-            optimizer.step()
+            if (i + 1) % args.update_every == 0:
+              optimizer.step()
             
             losses.append(loss.item())
             current_metric = args.metric(logits, labels, args.n_classes)
@@ -173,7 +176,7 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, tr
                 current_metric = args.metric(logits, labels, args.n_classes)
                 metrics.append(current_metric)
                 losses.append(loss.item())
-        #scheduler.step()
+        scheduler.step()
         print("Val loss: ", np.mean(losses))
         print("Val metric: ", np.mean(metrics))
         print()
@@ -190,10 +193,10 @@ def main(args: Namespace):
       test_dataloader = get_ImageNet_val(args)
     else:
       train_dataset = CocoStuff164k(args.data, "train2017", ignore_index=args.ignore_index)
-      train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=32,
+      train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=16,
                                 shuffle=True) #collate_fn=pad_images_and_labels(args.ignore_index)
       test_dataset = CocoStuff164k(args.data, "val2017", ignore_index=args.ignore_index)
-      test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=32, shuffle=False)
+      test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=16, shuffle=False)
     if args.learning_mode == "test":
         model = load_model(args)
         model.load_state_dict(torch.load(args.weights))
