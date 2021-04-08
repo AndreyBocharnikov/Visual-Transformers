@@ -333,7 +333,7 @@ official_resnet_to_resnetBackbone = {
 """
 f = open("official_resnet.txt", "r")
 f2 = open("my_resnet.txt", "r")
-f3 = open("utils2.py", "w")
+f3 = open("utils.py", "w")
 for i in range(122):
     my_module = f2.readline().strip()
     official_module = f.readline().strip()
