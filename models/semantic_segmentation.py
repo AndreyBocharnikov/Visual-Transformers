@@ -6,7 +6,8 @@ from utils import change_names
 import torch
 import torch.nn as nn
 
-from models.visual_transformer import VisualTransformer, FilterBasedTokenizer, RecurrentTokenizer
+from models.visual_transformer import VisualTransformer, FilterBasedTokenizer, RecurrentTokenizer, Transformer, \
+    Projector
 import torchvision.models as models
 
 
@@ -91,13 +92,13 @@ class SemanticSegmentationBranch(nn.Module):
                              nn.ReLU(),
                              nn.Upsample(scale_factor=2, mode="bilinear"))
 
-    def __init__(self, n_classes):
+    def __init__(self, n_classes, u2_cs=256, u3_cs=256, u4_cs=256, u5_cs=256):
         super().__init__()
-        self.u2 = nn.Conv2d(256, 128, kernel_size=3, padding=1)
-        self.u3 = SemanticSegmentationBranch.upsampling_stage(256, 128)
-        self.u4 = make_layer(SemanticSegmentationBranch.upsampling_stage(256, 128),
+        self.u2 = nn.Conv2d(u2_cs, 128, kernel_size=3, padding=1)
+        self.u3 = SemanticSegmentationBranch.upsampling_stage(u3_cs, 128)
+        self.u4 = make_layer(SemanticSegmentationBranch.upsampling_stage(u4_cs, 128),
                              SemanticSegmentationBranch.upsampling_stage(128, 128), 1)
-        self.u5 = make_layer(SemanticSegmentationBranch.upsampling_stage(256, 128),
+        self.u5 = make_layer(SemanticSegmentationBranch.upsampling_stage(u5_cs, 128),
                              SemanticSegmentationBranch.upsampling_stage(128, 128), 2)
 
         self.final_conv = nn.Conv2d(128, n_classes, kernel_size=1)
@@ -149,19 +150,37 @@ class PanopticFPN(nn.Module):
 
 
 class VT_FPN(nn.Module):
-    def __init__(self):
+    def __init__(self, n_classes, n_visual_tokens=8):
         super().__init__()
+        self.n_visual_tokens = n_visual_tokens
         self.backbone = ResNet50Backbone()
-        self.vt2 = VisualTransformer(FilterBasedTokenizer(256, 1024, 8), use_projector=True)
-        self.vt3 = VisualTransformer(FilterBasedTokenizer(512, 1024, 8), use_projector=True)
-        self.vt4 = VisualTransformer(FilterBasedTokenizer(1024, 1024, 8), use_projector=True)
-        self.vt5 = VisualTransformer(FilterBasedTokenizer(2048, 1024, 8), use_projector=True)
-
+        self.tokenizer2 = FilterBasedTokenizer(256, 1024, n_visual_tokens)
+        self.tokenizer3 = FilterBasedTokenizer(512, 1024, n_visual_tokens)
+        self.tokenizer4 = FilterBasedTokenizer(1024, 1024, n_visual_tokens)
+        self.tokenizer5 = FilterBasedTokenizer(2048, 1024, n_visual_tokens)
+        self.transformer = Transformer(1024)
+        self.projector2 = Projector(256, 1024)
+        self.projector3 = Projector(512, 1024)
+        self.projector4 = Projector(1024, 1024)
+        self.projector5 = Projector(2048, 1024)
+        self.upsample = nn.Upsample(scale_factor=2)
+        self.ss_branch = SemanticSegmentationBranch(n_classes, 256, 512, 1024, 2048)
 
     def forward(self, X):
+        bs, ch, h, w = X.shape
         c2, c3, c4, c5 = self.backbone(X)
-        visual_tokens2 = self.vt2(c2)
-        visual_tokens3 = self.vt3(c3)
-        visual_tokens4 = self.vt4(c4)
-        visual_tokens5 = self.vt5(c5)
+        print(c2.shape, c3.shape, c4.shape, c5.shape)
+        c2, c3, c4, c5 = torch.flatten(c2, start_dim=2), torch.flatten(c3, start_dim=2), torch.flatten(c4, start_dim=2), torch.flatten(c5, start_dim=2)
+        visual_tokens2 = self.tokenizer2(c2)
+        visual_tokens3 = self.tokenizer3(c3)
+        visual_tokens4 = self.tokenizer4(c4)
+        visual_tokens5 = self.tokenizer5(c5)
+        all_visual_tokens = torch.cat((visual_tokens2, visual_tokens3, visual_tokens4, visual_tokens5), dim=2)
+        t2, t3, t4, t5 = torch.split(self.transformer(all_visual_tokens), self.n_visual_tokens, dim=2)
+        p5 = self.projector5(c5, t5).view(bs, -1, h // 32, w // 32)
+        p4 = self.projector4(c4, t4).view(bs, -1, h // 16, w // 16)
+        p3 = self.projector3(c3, t3).view(bs, -1, h // 8, w // 8)
+        p2 = self.projector2(c2, t2).view(bs, -1, h // 4, w // 4)
+        return self.ss_branch(p2, p3, p4, p5)
+
 

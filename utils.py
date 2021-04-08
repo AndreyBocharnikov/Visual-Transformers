@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 
+
 def change_names(official_state_dict):
     my_state_dict = {}
     for k, v in official_state_dict.items():
@@ -10,18 +11,19 @@ def change_names(official_state_dict):
 
 
 def mIOU(logits, labels, n_classes):
-  eps = 1e-7
-  predictions = torch.argmax(logits, dim=1)
-  result = []
-  for class_ in range(n_classes):
-    ground_truth = labels == class_
-    cur_predictions = predictions == class_
+    # eps = 1e-7
+    predictions = torch.argmax(logits, dim=1)
+    result = []
+    for class_ in range(n_classes):
+        ground_truth = labels == class_
+        cur_predictions = predictions == class_
 
-    intersection = cur_predictions[ground_truth].long().sum().item()
-    union = ground_truth.long().sum().item() + cur_predictions.long().sum().item() - intersection
-    iou = intersection / (union + eps)
-    result.append(iou)
-  return np.mean(result)
+        intersection = cur_predictions[ground_truth].long().sum().item()
+        union = ground_truth.long().sum().item() + cur_predictions.long().sum().item() - intersection
+        if union != 0:
+            iou = intersection / union
+            result.append(iou)
+    return np.mean(result)
 
 
 def accuracy(logits, labels, n_classes=None):

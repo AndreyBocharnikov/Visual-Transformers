@@ -14,7 +14,7 @@ class FilterBasedTokenizer(nn.Module):
         self.W_v = nn.Conv1d(feature_map_cs, visual_tokens_cs, kernel_size=1, bias=False)
         self.softmax = nn.Softmax(dim=2)
 
-    def forward(self, X: torch.Tensor, T_in: tp.Optional[torch.Tensor]):
+    def forward(self, X: torch.Tensor, T_in: tp.Optional[torch.Tensor]=None):
         # X.shape = bs, feature_map_cs, HW
         A = self.W_a(X) / np.sqrt(self.feature_map_cs)  # bs, n_visual_tokens, HW
         V = self.W_v(X)  # bs, visual_tokens_cs, HW

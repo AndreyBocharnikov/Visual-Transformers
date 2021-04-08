@@ -3,6 +3,7 @@ import torch.nn as nn
 
 from models.visual_transformer import VisualTransformer, FilterBasedTokenizer, RecurrentTokenizer
 
+
 def init_weights(layer):
     if type(layer) == nn.Conv2d or type(layer) == nn.Conv1d:
         # print(layer)
