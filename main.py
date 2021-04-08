@@ -35,11 +35,11 @@ def parse_args() -> Namespace:
                                                   "Used only if learning_mode=Train")
 
     parser.add_argument("--device", default="cuda:0")
-    parser.add_argument("--epochs", type=int, default=15)
+    #parser.add_argument("--epochs", type=int, default=15)
     #parser.add_argument("--batch_size", type=int, default=256)
     #parser.add_argument("--clip_grad_norm", type=float, default=1)
     #parser.add_argument("--verbose_every", type=int, default=100, help="print loss and metrics every n batches.")
-    parser.add_argument("--save_model_path", default="/content/drive/MyDrive/weights/semantic_segmentation/", help="Dont add .pt, it will be added after epoch number")
+    parser.add_argument("--save_model_path", default="/content/drive/MyDrive/ML/weights/semantic_segmentation/", help="Dont add .pt, it will be added after epoch number")
     #parser.add_argument("--save_model_every", type=int, default=1000, help="save model weights and optimizer every n batches.")
     args = parser.parse_args()
 
@@ -81,10 +81,10 @@ def parse_args() -> Namespace:
         args.lr = 0.04
       args.weight_decay = 1e-5
       args.nesterov = False
-      args.epochs = 3
+      args.epochs = 10
       args.metric = mIOU
       args.n_classes = 91
-      args.verbose_every = 25
+      args.verbose_every = 500
     return args
 
 
@@ -138,8 +138,7 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, tr
     for epoch in range(args.current_epoch + 1, args.epochs + 1):
         model.train()
         #print("very first model weights", torch.max(torch.abs(model.classification_head.fc.weight)))
-        start = time.time()
-        """
+        #start = time.time()
         for i, (images, labels) in enumerate(train_dataloader):
             #start = time.time()
             optimizer.zero_grad()
@@ -154,10 +153,7 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, tr
             losses.append(loss.item())
             current_metric = args.metric(logits, labels, args.n_classes)
             metrics.append(current_metric)
-            #print("One batch took", time.time() - start)
-            #print("loss", loss.item())
-            #print("metric", current_metric)
-            start = time.time()
+            #start = time.time()
             #print("model weights", torch.max(torch.abs(model.classification_head.fc.weight)))
             #print("model grads", torch.max(torch.abs(model.classification_head.fc.weight.grad)))
             if (i % args.verbose_every == 0) or i + 1 == len(train_dataloader):
@@ -167,20 +163,16 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, tr
                 print()
                 losses = []
                 metrics = []
-        """
+        
         model.eval()
         with torch.no_grad():
-            start = time.time()
-            for i, (images, labels) in enumerate(val_dataloader):
+            for images, labels in val_dataloader:
                 images = images.to(device=args.device)
                 logits = model(images)
                 loss = criterion(logits, labels.to(device=args.device))
                 current_metric = args.metric(logits, labels, args.n_classes)
                 metrics.append(current_metric)
                 losses.append(loss.item())
-                if i != 0 and i % 10 == 0:
-                  print(i, time.time() - start)
-                  start = time.time()
         #scheduler.step()
         print("Val loss: ", np.mean(losses))
         print("Val metric: ", np.mean(metrics))
