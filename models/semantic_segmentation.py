@@ -1,10 +1,13 @@
 import typing as tp
 import copy
 
+from utils import change_names
+
 import torch
 import torch.nn as nn
 
 from models.visual_transformer import VisualTransformer, FilterBasedTokenizer, RecurrentTokenizer
+import torchvision.models as models
 
 
 def make_layer(first_layer, type_of_rest_layers, n_rest_layers):
@@ -91,22 +94,21 @@ class SemanticSegmentationBranch(nn.Module):
     def __init__(self, n_classes):
         super().__init__()
         self.u2 = nn.Conv2d(256, 128, kernel_size=3, padding=1)
-        self.u3 = make_layer(SemanticSegmentationBranch.upsampling_stage(256, 128),
-                             SemanticSegmentationBranch.upsampling_stage(128, 128), 1)
+        self.u3 = SemanticSegmentationBranch.upsampling_stage(256, 128)
         self.u4 = make_layer(SemanticSegmentationBranch.upsampling_stage(256, 128),
-                             SemanticSegmentationBranch.upsampling_stage(128, 128), 2)
+                             SemanticSegmentationBranch.upsampling_stage(128, 128), 1)
         self.u5 = make_layer(SemanticSegmentationBranch.upsampling_stage(256, 128),
-                             SemanticSegmentationBranch.upsampling_stage(128, 128), 3)
+                             SemanticSegmentationBranch.upsampling_stage(128, 128), 2)
 
         self.final_conv = nn.Conv2d(128, n_classes, kernel_size=1)
         self.upsample = nn.Upsample(scale_factor=4, mode="bilinear")
-        self.softmax = nn.Softmax(dim=x)
+        self.softmax = nn.Softmax(dim=1)
 
     def forward(self, p2, p3, p4, p5):
         g2 = self.u2(p2)
         g3 = self.u3(p3)
-        g4 = self.u2(p4)
-        g5 = self.u3(p5)
+        g4 = self.u4(p4)
+        g5 = self.u5(p5)
 
         result = self.final_conv(g2 + g3 + g4 + g5)
         result = self.upsample(result)
@@ -114,9 +116,22 @@ class SemanticSegmentationBranch(nn.Module):
 
 
 class PanopticFPN(nn.Module):
+    def load_resnet(self):
+      pretrained_weights = models.resnet50(pretrained=True).state_dict()
+      my_state_dict = change_names(pretrained_weights)
+      self.backbone.load_state_dict(my_state_dict)
+      self.backbone.apply(PanopticFPN.set_bn_eval)
+    
+    @staticmethod
+    def set_bn_eval(module):
+        if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
+            module.eval()
+
     def __init__(self, n_classes):
         super().__init__()
         self.backbone = ResNet50Backbone()
+        self.load_resnet()
+
         self.skip_con_conv2 = nn.Conv2d(256, 256, kernel_size=1)
         self.skip_con_conv3 = nn.Conv2d(512, 256, kernel_size=1)
         self.skip_con_conv4 = nn.Conv2d(1024, 256, kernel_size=1)
@@ -127,9 +142,9 @@ class PanopticFPN(nn.Module):
     def forward(self, X):
         c2, c3, c4, c5 = self.backbone(X)
         p5 = self.skip_con_conv5(c5)
-        p4 = self.skip_con_conv4(c4) + self.upsample(c5)
-        p3 = self.skip_con_conv3(c3) + self.upsample(c4)
-        p2 = self.skip_con_conv2(c2) + self.upsample(c3)
+        p4 = self.skip_con_conv4(c4) + self.upsample(p5)
+        p3 = self.skip_con_conv3(c3) + self.upsample(p4)
+        p2 = self.skip_con_conv2(c2) + self.upsample(p3)
         return self.ss_branch(p2, p3, p4, p5)
 
 
