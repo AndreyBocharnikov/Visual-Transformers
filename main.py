@@ -83,10 +83,10 @@ def parse_args() -> Namespace:
       args.update_every = 2
       args.weight_decay = 1e-5
       args.nesterov = False
-      args.epochs = 10
+      args.epochs = 4
       args.metric = mIOU
       args.n_classes = 91
-      args.verbose_every = 500
+      args.verbose_every = 2000
     return args
 
 
@@ -133,7 +133,7 @@ def test(model: nn.Module, test_dataloader: DataLoader):
 
 
 def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, train_dataloader: DataLoader, val_dataloader: DataLoader):
-    criterion = nn.CrossEntropyLoss(ignore_index=-100 if args.ignore_index is None else args.ignore_index)
+    criterion = nn.CrossEntropyLoss(ignore_index=-100 if args.ignore_index is None else args.ignore_index) #, size_average=True
     losses = []
     metrics = []
     print("Number of batches in training data", len(train_dataloader))
@@ -156,7 +156,10 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, tr
             losses.append(loss.item())
             current_metric = args.metric(logits, labels, args.n_classes)
             metrics.append(current_metric)
-            #start = time.time()
+            #print("one batch took", time.time() - start)
+            #print("loss:", loss.item())
+            #print("current_metric:", current_metric)
+            start = time.time()
             #print("model weights", torch.max(torch.abs(model.classification_head.fc.weight)))
             #print("model grads", torch.max(torch.abs(model.classification_head.fc.weight.grad)))
             if (i % args.verbose_every == 0) or i + 1 == len(train_dataloader):
