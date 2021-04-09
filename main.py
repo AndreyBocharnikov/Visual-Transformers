@@ -83,7 +83,7 @@ def parse_args() -> Namespace:
       args.update_every = 2
       args.weight_decay = 1e-5
       args.nesterov = False
-      args.epochs = 4
+      args.epochs = 5
       args.metric = mIOU
       args.n_classes = 91
       args.verbose_every = 2000
@@ -133,7 +133,7 @@ def test(model: nn.Module, test_dataloader: DataLoader):
 
 
 def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, train_dataloader: DataLoader, val_dataloader: DataLoader):
-    criterion = nn.CrossEntropyLoss(ignore_index=-100 if args.ignore_index is None else args.ignore_index) #, size_average=True
+    criterion = nn.CrossEntropyLoss(ignore_index=-100 if args.ignore_index is None else args.ignore_index, size_average=True)
     losses = []
     metrics = []
     print("Number of batches in training data", len(train_dataloader))
@@ -175,7 +175,7 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, tr
             for images, labels in val_dataloader:
                 images = images.to(device=args.device)
                 logits = model(images)
-                loss = criterion(logits, labels.to(device=args.device))
+                loss = criterion(logits, labels.to(device=args.device)) / args.update_every
                 current_metric = args.metric(logits, labels, args.n_classes)
                 metrics.append(current_metric)
                 losses.append(loss.item())
