@@ -12,7 +12,45 @@ Unofficial implimentation of Visual Transformers: Token-based Image Representati
 * `--weights` must be provided if `learning_mode` equals to `test`, won't be used in `train` mode.
 * `--from_pretrained` uses to continue training from some point, should be `state_dict` that contains `model_state_dict`, `optimizer_state_dict` and `epoch`.
 
-## Results:
+## Results:  
+* Metrics and loss:
+<table>
+  <tr>  
+    <td>    
+    
+|                      | ResNet18 | VT-ResNet18 |
+|----------------------|----------|-------------|
+| Training accuracy    |          |             |
+| Validation accuracy  |          |             |
+|                      |          |             |
+| Training loss        |          |             |
+| Validation loss      |          |             |
+
+   
+   </td><td>  
+      
+|                 | Panoptic FPN | VT-FPN |
+|-----------------|--------------|--------|
+| Training mIOU   |              |        |
+| Validation mIOU |              |        |
+|                 |              |        |
+| Training loss   |              |        |
+| Validation loss |              |        |
+
+
+   </td>  
+  </tr>
+</table>
+
+* Efficiency and parameters
+
+|              | Params | FLOPs | Forward pass |
+|--------------|--------|-------|--------------|
+| ResNet18     |        |       |              |
+| VT-ResNet18  |        |       |              |
+|              |        |       |              |
+| Panoptic FPN |        |       |              |
+| VT-FPN       |        |       |              |
 
 ## Weights:
 * classification: [baseline](https://drive.google.com/file/d/1-7zrZD2TekIIcAa4im0i5fi31ZG90sP9/view?usp=sharing), [VT_ResNet](TODO)
