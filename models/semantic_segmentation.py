@@ -1,4 +1,3 @@
-import typing as tp
 import copy
 
 from utils import change_names
@@ -6,8 +5,7 @@ from utils import change_names
 import torch
 import torch.nn as nn
 
-from models.visual_transformer import VisualTransformer, FilterBasedTokenizer, RecurrentTokenizer, Transformer, \
-    Projector
+from models.visual_transformer import FilterBasedTokenizer, Transformer, Projector
 import torchvision.models as models
 
 
@@ -52,28 +50,9 @@ class ResNet50Backbone(nn.Module):
                                    nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
 
         self.conv2 = make_layer(Bottleneck(64, 64, 256, downsample=True), Bottleneck(256, 64, 256), 2)
-        #    nn.Sequential(Bottleneck(64, 64, 256, downsample=True),
-        #                           Bottleneck(256, 64, 256),
-        #                           Bottleneck(256, 64, 256))
-
         self.conv3 = make_layer(Bottleneck(256, 128, 512, stride=2), Bottleneck(512, 128, 512), 3)
-            #nn.Sequential(Bottleneck(256, 128, 512, stride=2),
-            #                       Bottleneck(512, 128, 512),
-            #                       Bottleneck(512, 128, 512),
-            #                       Bottleneck(512, 128, 512))
-
         self.conv4 = make_layer(Bottleneck(512, 256, 1024, stride=2), Bottleneck(1024, 256, 1024), 5)
-            #nn.Sequential(Bottleneck(512, 256, 1024, stride=2),
-            #                       Bottleneck(1024, 256, 1024),
-            #                       Bottleneck(1024, 256, 1024),
-            #                       Bottleneck(1024, 256, 1024),
-            #                       Bottleneck(1024, 256, 1024),
-            #                       Bottleneck(1024, 256, 1024))
-
         self.conv5 = make_layer(Bottleneck(1024, 512, 2048, stride=2), Bottleneck(2048, 512, 2048), 2)
-            #nn.Sequential(Bottleneck(1024, 512, 2048, stride=2),
-            #                       Bottleneck(2048, 512, 2048),
-            #                       Bottleneck(2048, 512, 2048))
 
     def forward(self, X):
         c1 = self.conv1(X)  # bs, 64, h/4, w/4

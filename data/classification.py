@@ -1,7 +1,6 @@
 from torch.utils.data import DataLoader
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
-from torchvision.datasets import ImageNet
 import os
 
 

@@ -6,7 +6,6 @@ from models.visual_transformer import VisualTransformer, FilterBasedTokenizer, R
 
 def init_weights(layer):
     if type(layer) == nn.Conv2d or type(layer) == nn.Conv1d:
-        # print(layer)
         torch.nn.init.kaiming_normal_(layer.weight, nonlinearity='relu')
 
 
@@ -76,7 +75,7 @@ class ResNet18(nn.Module):
                                     BasicBlock(512, 512))
         self.classification_head = ClassificationHead(in_dim=512, n_classes=n_classes, pooling=nn.AdaptiveAvgPool2d((1, 1)))
 
-        # TODO self.apply(init_weights)
+        self.apply(init_weights)
 
     def forward(self, X):
         X = self.backbone(X)
