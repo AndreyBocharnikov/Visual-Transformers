@@ -7,8 +7,8 @@ Unofficial implimentation of Visual Transformers: Token-based Image Representati
 * `learning_mode`: `train` to train `--model` from scratch, `test` to validate `--model` with `--weights` on validation data.
 * `data`: path to dataset, in case of classification should be path to image net, in case of semantic segmentation to coco.
 * `--model`:   
-  ○ classification: `ResNet18` as a baseline, `VT_ResNet18` (will be used by default).  
-  ○ semantic segmentation: TODO as a baseline, TODO (will be used by default).  
+  ○ classification: `ResNet18` or `VT_ResNet18` (will be used by default).  
+  ○ semantic segmentation: Panoptic FPN or VT-FPN (will be used by default).  
 * `--weights` must be provided if `learning_mode` equals to `test`, won't be used in `train` mode.
 * `--from_pretrained` uses to continue training from some point, should be `state_dict` that contains `model_state_dict`, `optimizer_state_dict` and `epoch`.
 
@@ -66,5 +66,5 @@ pixel-wise cross entropy loss   |  mIOU
 | VT-FPN       |    40.3    |       |       0.062      |
 
 ## Weights:
-* classification: [baseline](https://drive.google.com/file/d/1-7zrZD2TekIIcAa4im0i5fi31ZG90sP9/view?usp=sharing), [VT_ResNet](TODO)
-* semantic segmentation: [baseline](TODO), [VT](TODO)
+* classification: [ResNet18](https://drive.google.com/file/d/102_XFdm9mnQbZVbw8ChoywvxG3IOhXCh/view?usp=sharing), [VT-ResNet18](https://drive.google.com/file/d/1-7zrZD2TekIIcAa4im0i5fi31ZG90sP9/view?usp=sharing)
+* semantic segmentation: [Panoptic FPN](https://drive.google.com/file/d/1hEYHuaWhc-JqpPyjdr86kMorkDGX3gIN/view?usp=sharing), [VT-FPN](https://drive.google.com/file/d/1-GUY6KdQBF5q4VFrdb79XyROqE70lbHv/view?usp=sharing)
