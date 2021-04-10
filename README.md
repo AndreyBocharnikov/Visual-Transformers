@@ -51,6 +51,8 @@ cross entropy loss         |  accuracy
 
 pixel-wise cross entropy loss   |  mIOU
 :------------------------------:|:-------------------------:
+![semantic segmentation_loss](https://user-images.githubusercontent.com/41442977/114266799-f077e980-9a00-11eb-9804-1a386e29729c.png)  | ![semantic segmentation mIOU](https://user-images.githubusercontent.com/41442977/114266809-071e4080-9a01-11eb-98e9-553463db2c7c.png)
+
 
 
 
