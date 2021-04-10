@@ -49,7 +49,7 @@ def parse_args() -> Namespace:
                 raise ValueError(f"Only ResNet18 and VT_ResNet18 models supported for classification, not {args.model}")
         else:
             if args.model not in ["PanopticFPN", "VT_FPN"]:
-                raise ValueError("")  # TODO
+                raise ValueError(f"Only PanopticFPN and VT_FPN models supported for semantic segmentation, not {args.model}")
     if args.task_mode == "classification":
         args.ignore_index = None
         args.batch_size = 256
