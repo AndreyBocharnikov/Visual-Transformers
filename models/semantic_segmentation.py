@@ -182,5 +182,3 @@ class VT_FPN(nn.Module):
         p3 = self.projector3(c3, t3).view(bs, -1, h // 8, w // 8)
         p2 = self.projector2(c2, t2).view(bs, -1, h // 4, w // 4)
         return self.ss_branch(p2, p3, p4, p5)
-
-
