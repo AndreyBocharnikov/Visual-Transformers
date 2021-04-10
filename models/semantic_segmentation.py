@@ -116,22 +116,23 @@ class SemanticSegmentationBranch(nn.Module):
         return self.softmax(result)
 
 
-class PanopticFPN(nn.Module):
-    def load_resnet(self):
+def set_bn_eval(module):
+    if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
+        module.eval()
+
+
+def load_resnet(backbone):
       pretrained_weights = models.resnet50(pretrained=True).state_dict()
       my_state_dict = change_names(pretrained_weights)
-      self.backbone.load_state_dict(my_state_dict)
-      self.backbone.apply(PanopticFPN.set_bn_eval)
-    
-    @staticmethod
-    def set_bn_eval(module):
-        if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
-            module.eval()
+      backbone.load_state_dict(my_state_dict)
+      backbone.apply(set_bn_eval)
 
+
+class PanopticFPN(nn.Module):
     def __init__(self, n_classes):
         super().__init__()
         self.backbone = ResNet50Backbone()
-        self.load_resnet()
+        load_resnet(self.backbone)
 
         self.skip_con_conv2 = nn.Conv2d(256, 256, kernel_size=1)
         self.skip_con_conv3 = nn.Conv2d(512, 256, kernel_size=1)
@@ -154,6 +155,8 @@ class VT_FPN(nn.Module):
         super().__init__()
         self.n_visual_tokens = n_visual_tokens
         self.backbone = ResNet50Backbone()
+        load_resnet(self.backbone)
+
         self.tokenizer2 = FilterBasedTokenizer(256, 1024, n_visual_tokens)
         self.tokenizer3 = FilterBasedTokenizer(512, 1024, n_visual_tokens)
         self.tokenizer4 = FilterBasedTokenizer(1024, 1024, n_visual_tokens)
@@ -169,7 +172,6 @@ class VT_FPN(nn.Module):
     def forward(self, X):
         bs, ch, h, w = X.shape
         c2, c3, c4, c5 = self.backbone(X)
-        print(c2.shape, c3.shape, c4.shape, c5.shape)
         c2, c3, c4, c5 = torch.flatten(c2, start_dim=2), torch.flatten(c3, start_dim=2), torch.flatten(c4, start_dim=2), torch.flatten(c5, start_dim=2)
         visual_tokens2 = self.tokenizer2(c2)
         visual_tokens3 = self.tokenizer3(c3)

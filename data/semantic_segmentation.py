@@ -124,8 +124,8 @@ class CocoStuff164k(Dataset):
         if self.split == "train2017":
           image, label = self.transform(image, label)
         else:
-          resize_image = transforms.Resize(size=(320, 320))
-          resize_label = transforms.Resize(size=(320, 320), interpolation=transforms.InterpolationMode.NEAREST)
+          resize_image = transforms.Resize(size=(512, 512))
+          resize_label = transforms.Resize(size=(512, 512), interpolation=transforms.InterpolationMode.NEAREST)
           image = resize_image(image)
           label = resize_label(label)
 
