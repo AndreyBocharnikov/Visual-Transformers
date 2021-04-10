@@ -8,7 +8,7 @@ Unofficial implimentation of Visual Transformers: Token-based Image Representati
 * `data`: path to dataset, in case of classification should be path to image net, in case of semantic segmentation to coco.
 * `--model`:   
   ○ classification: `ResNet18` or `VT_ResNet18` (will be used by default).  
-  ○ semantic segmentation: Panoptic FPN or VT-FPN (will be used by default).  
+  ○ semantic segmentation: `PanopticFPN` or `VT_FPN` (will be used by default).  
 * `--weights` must be provided if `learning_mode` equals to `test`, won't be used in `train` mode.
 * `--from_pretrained` uses to continue training from some point, should be `state_dict` that contains `model_state_dict`, `optimizer_state_dict` and `epoch`.
 
