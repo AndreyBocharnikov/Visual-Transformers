@@ -113,7 +113,6 @@ def load_model_and_optimizer(args: Namespace) -> tp.Tuple[nn.Module, optim.SGD]:
     
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay, nesterov=args.nesterov)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
-    #optimizer = optim.Adam(model.parameters(), lr=0.0002, betas=(0.5, 0.999))
     if args.from_pretrained is not None:
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
@@ -128,7 +127,7 @@ def test(model: nn.Module, test_dataloader: DataLoader):
             label = label.to(device=args.device)
             image = image.to(device=args.device)
             logits = model(image)
-            metrics.append(args.metric(logits, label))
+            metrics.append(args.metric(logits, label, args.n_classes))
     print("Mean metric =", np.mean(metrics))
 
 
@@ -174,8 +173,9 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, tr
         with torch.no_grad():
             for images, labels in val_dataloader:
                 images = images.to(device=args.device)
+                labels = labels.to(device=args.device)
                 logits = model(images)
-                loss = criterion(logits, labels.to(device=args.device)) / args.update_every
+                loss = criterion(logits, labels) / args.update_every
                 current_metric = args.metric(logits, labels, args.n_classes)
                 metrics.append(current_metric)
                 losses.append(loss.item())
@@ -192,11 +192,13 @@ def train(args: Namespace, model: nn.Module, optimizer: optim.SGD, scheduler, tr
 
 def main(args: Namespace):
     if args.task_mode == "classification":
-      train_dataloader = get_ImageNet_train(args)
+      if args.learning_mode != "test":
+        train_dataloader = get_ImageNet_train(args)
       test_dataloader = get_ImageNet_val(args)
     else:
-      train_dataset = CocoStuff164k(args.data, "train2017", ignore_index=args.ignore_index)
-      train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=16,
+      if args.learning_mode != "test":
+        train_dataset = CocoStuff164k(args.data, "train2017", ignore_index=args.ignore_index)
+        train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=16,
                                 shuffle=True) #collate_fn=pad_images_and_labels(args.ignore_index)
       test_dataset = CocoStuff164k(args.data, "val2017", ignore_index=args.ignore_index)
       test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=16, shuffle=False)
