@@ -20,22 +20,22 @@ Unofficial implimentation of Visual Transformers: Token-based Image Representati
     
 |                      | ResNet18 | VT-ResNet18 |
 |----------------------|----------|-------------|
-| Training accuracy    |          |             |
-| Validation accuracy  |          |             |
+| Training accuracy    | 0.664675 |  0.672889   |
+| Validation accuracy  | 0.691541 |  0.696929   |
 |                      |          |             |
-| Training loss        |          |             |
-| Validation loss      |          |             |
+| Training loss        | 1.312150 |  1.249382   |
+| Validation loss      | 1.173559 |  1.114401   |
 
    
    </td><td>  
       
-|                 | Panoptic FPN | VT-FPN |
-|-----------------|--------------|--------|
-| Training mIOU   |              |        |
-| Validation mIOU |              |        |
-|                 |              |        |
-| Training loss   |              |        |
-| Validation loss |              |        |
+|                 | Panoptic FPN |  VT-FPN  |
+|-----------------|--------------|----------|
+| Training mIOU   |   8.0968     | 7.0343   |
+| Validation mIOU |   4.3148     | 3.2351   |
+|                 |              |          |
+| Training loss   |   2.044084   | 2.068598 |
+| Validation loss |   2.101253   | 2.120928 |
 
 
    </td>  
@@ -57,13 +57,13 @@ pixel-wise cross entropy loss   |  mIOU
 
 * Efficiency and parameters
 
-|              | Params | FLOPs | Forward pass (s) |
-|--------------|--------|-------|------------------|
-| ResNet18     |        |       |       0.016      |
-| VT-ResNet18  |        |       |       0.02       |
-|              |        |       |                  |
-| Panoptic FPN |        |       |                  |
-| VT-FPN       |        |       |                  |
+|              | Params (M) | FLOPs | Forward pass (s) |
+|--------------|------------|-------|------------------|
+| ResNet18     |    11.2    |       |       0.016      |
+| VT-ResNet18  |    12.7    |       |       0.02       |
+|              |            |       |                  |
+| Panoptic FPN |    16.4    |       |       0.08       |
+| VT-FPN       |    40.3    |       |       0.062      |
 
 ## Weights:
 * classification: [baseline](https://drive.google.com/file/d/1-7zrZD2TekIIcAa4im0i5fi31ZG90sP9/view?usp=sharing), [VT_ResNet](TODO)
