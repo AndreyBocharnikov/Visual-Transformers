@@ -1,7 +1,6 @@
 import torch
 import numpy as np
 
-
 def change_names(official_state_dict):
     my_state_dict = {}
     for k, v in official_state_dict.items():
@@ -351,6 +350,7 @@ official_resnet_to_resnetBackbone = {
     "layer4.2.bn3.running_var": "conv5.2.plain_arch.7.running_var",
     "layer4.2.bn3.num_batches_tracked": "conv5.2.plain_arch.7.num_batches_tracked",
 }
+
 #x = torch.rand((2, 3, 224, 224))
 #with torch.no_grad():
 #    print(np.allclose(resnet50(x).numpy(), my_resnet(x).numpy()))
