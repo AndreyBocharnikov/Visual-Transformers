@@ -350,33 +350,3 @@ official_resnet_to_resnetBackbone = {
     "layer4.2.bn3.running_var": "conv5.2.plain_arch.7.running_var",
     "layer4.2.bn3.num_batches_tracked": "conv5.2.plain_arch.7.num_batches_tracked",
 }
-
-#x = torch.rand((2, 3, 224, 224))
-#with torch.no_grad():
-#    print(np.allclose(resnet50(x).numpy(), my_resnet(x).numpy()))
-
-"""
-f = open("official_resnet.txt", "r")
-f2 = open("my_resnet.txt", "r")
-f3 = open("utils.py", "w")
-for i in range(122):
-    my_module = f2.readline().strip()
-    official_module = f.readline().strip()
-    #print()
-    f3.write('"' + official_module + '": ' + '"' + my_module + '",\n')
-#f.write('\n'.join(map(lambda x: x[1:-1], str(official_resnet.state_dict().keys())[12:-2].split(', '))))
-
-f.close()
-f2.close()
-f3.close()
-"""
-"""
-official_resnet = models.resnet18(pretrained=True)
-my_resnet = ResNet18(1000)
-f = open("official_resnet.txt", "w")
-f2 = open("my_resnet.txt", "w")
-f2.write('\n'.join(map(lambda x: x[1:-1], str(my_resnet.state_dict().keys())[12:-2].split(', '))))
-f.write('\n'.join(map(lambda x: x[1:-1], str(official_resnet.state_dict().keys())[12:-2].split(', '))))
-f.close()
-f2.close()
-"""
