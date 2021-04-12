@@ -59,13 +59,13 @@ pixel-wise cross entropy loss   |  mIOU
 
 * Efficiency and parameters
 
-|              | Params (M) | FLOPs (M) | Forward pass (s) |
-|--------------|------------|-----------|------------------|
-| ResNet18     |    11.2    |    822    |       0.016      |
-| VT-ResNet18  |    12.7    |    543    |       0.02       |
-|              |            |           |                  |
-| Panoptic FPN |    16.4    |   67412   |       0.08       |
-| VT-FPN       |    40.3    |  110019   |       0.062      |
+|              | Params (M) | FLOPs (M) | Forward-backward pass (s) |
+|--------------|------------|-----------|---------------------------|
+| ResNet18     |    11.2    |    822    |       0.016               |
+| VT-ResNet18  |    12.7    |    543    |       0.02                |
+|              |            |           |                           |
+| Panoptic FPN |    16.4    |   67412   |       0.08                |
+| VT-FPN       |    40.3    |  110019   |       0.062               |
 
 ## Weights:
 * classification: [ResNet18](https://drive.google.com/file/d/102_XFdm9mnQbZVbw8ChoywvxG3IOhXCh/view?usp=sharing), [VT-ResNet18](https://drive.google.com/file/d/1-7zrZD2TekIIcAa4im0i5fi31ZG90sP9/view?usp=sharing)
